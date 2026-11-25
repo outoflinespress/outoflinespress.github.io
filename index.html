@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="dark light">
   <meta name="theme-color" content="#0a0d10">
-  <meta name="description" content="Out of Lines Press — coloring books with real creatures, sharp satire, and motorcycle-riding cryptids. One book live on Amazon now, more coming soon. Plus a free game, free coloring packs, and a free online coloring studio.">
+  <meta name="description" content="Out of Lines Press — coloring books with real creatures, sharp satire, and motorcycle-riding cryptids. One book live on Amazon now, more coming soon. Plus two free games, free coloring packs, and a free online coloring studio.">
   <link rel="icon" href="data:,">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -111,6 +111,10 @@
     .color-panel h3 { margin: 0; font: 800 clamp(2.4rem, 9vw, 3.8rem)/.9 "Barlow Condensed", sans-serif; text-transform: uppercase; }
     .color-panel h3 span { color: var(--teal); }
     .color-panel p { color: var(--muted); margin: 12px 0 0; max-width: 560px; }
+    .ocean-panel { display: grid; gap: 28px; margin-top: 28px; padding: 28px 24px; background: var(--panel); border: 1px solid var(--line); border-top: 6px solid var(--teal); box-shadow: var(--shadow); }
+    .ocean-panel h3 { margin: 0; font: 800 clamp(2.4rem, 9vw, 3.8rem)/.9 "Barlow Condensed", sans-serif; text-transform: uppercase; }
+    .ocean-panel h3 span { color: var(--teal); }
+    .ocean-panel p { color: var(--muted); margin: 12px 0 0; max-width: 560px; }
     .free-grid { display: grid; gap: 26px; }
     .free-pack { display: flex; flex-direction: column; overflow: hidden; background: var(--panel); border: 1px solid var(--line); }
     .free-image { background: #f7f7f4; }
@@ -149,6 +153,7 @@
       .book { width: 100%; }
       .game-panel { grid-template-columns: minmax(0, 1.2fr) minmax(260px, .8fr); align-items: center; padding: 40px; }
       .color-panel { grid-template-columns: minmax(0, 1.2fr) minmax(260px, .8fr); align-items: center; padding: 40px; }
+      .ocean-panel { grid-template-columns: minmax(0, 1.2fr) minmax(260px, .8fr); align-items: center; padding: 40px; }
       .free-grid { grid-template-columns: repeat(3, 1fr); }
       .about-grid { grid-template-columns: 260px minmax(0, 1fr); align-items: center; }
       .contact { padding: 44px; }
@@ -167,7 +172,8 @@
       <ul>
         <li><a href="#live">On Amazon</a></li>
         <li><a href="#coming-soon">Coming soon</a></li>
-        <li><a href="#game">Game</a></li>
+        <li><a href="#game">Games</a></li>
+        <li><a href="#underwater-game">Underwater game</a></li>
         <li><a href="#color-online">Color online</a></li>
         <li><a href="#free">Free packs</a></li>
         <li><a href="#about">About us</a></li>
@@ -181,11 +187,12 @@
       <p class="hero-brand">Out of Lines Press</p>
       <h1>Color <span>Everything</span></h1>
       <span class="hero-rule" aria-hidden="true"></span>
-      <p>Serious coloring books. Not-so-serious people. <strong>One book is live on Amazon right now</strong> — the rest are on their way, and yes, we’re as impatient as you are. Can’t wait? You can color the Sons of Anarcreepy free pack online right now, free.</p>
+      <p>Serious coloring books. Not-so-serious people. <strong>One book is live on Amazon right now</strong> — the rest are on their way, and yes, we’re as impatient as you are. Can’t wait? You can color the Sons of Anarcreepy free pack online right now, free — or swim as the creatures from the deep-sea book in our new relaxing game.</p>
       <div class="hero-actions">
         <a class="btn btn-gold" href="https://www.amazon.com/dp/B0HSHPTP1" target="_blank" rel="noopener">Get the live book on Amazon</a>
         <a class="btn btn-teal" href="coloring-app.html">🎨 Color the Free Pack Online</a>
-        <a class="btn btn-outline" href="https://play.outoflinespress.com" target="_blank" rel="noopener">Play the free game</a>
+        <a class="btn btn-teal" href="weird-underwater-game.html">🌊 Play Weird Underwater Creatures Eat Too</a>
+        <a class="btn btn-outline" href="https://play.outoflinespress.com" target="_blank" rel="noopener">Play Cryptids &amp; Chrome</a>
       </div>
     </div>
   </header>
@@ -268,8 +275,8 @@
     <section class="section" id="game">
       <div class="wrap">
         <div class="section-head">
-          <h2>The game <span class="count">— free</span></h2>
-          <p>From the world of Sons of Anarcreepy. It’s free, it runs in your browser, and nobody will try to sell you a hot dog from a claw machine while you play.</p>
+          <h2>The games <span class="count">— 2 free</span></h2>
+          <p>Two free browser games, two very different moods. Chase the midnight highway in Cryptids &amp; Chrome, or slow right down and swim, eat, and grow in Weird Underwater Creatures Eat Too. Both are free, and nobody will try to sell you a hot dog from a claw machine while you play.</p>
         </div>
         <div class="game-panel">
           <div>
@@ -284,6 +291,23 @@
             <li>Free <span>No cost, no account needed to start playing.</span></li>
             <li>Plays in your browser <span>Works on phone and computer at play.outoflinespress.com.</span></li>
             <li>Same world as the book <span>The game companion to Sons of Anarcreepy — Cryptids and Chrome.</span></li>
+          </ul>
+        </div>
+
+        <div class="ocean-panel" id="underwater-game">
+          <div>
+            <span class="tag tag-free">Free · No download · No timers</span>
+            <h3>Weird Underwater Creatures <span>Eat Too</span></h3>
+            <p>The relaxing game from Unbelievably Amazing Creatures Found in the Deep — Part One. Play as each creature, eat what it really eats, grow bigger, and steer clear of its natural predators. Gentle water sounds, eating pops, and music that tenses up when danger drifts close.</p>
+            <div class="book-actions">
+              <a class="btn btn-teal" href="weird-underwater-game.html">🌊 Play the Underwater Game →</a>
+            </div>
+            <p class="fine">Opens right here on outoflinespress.com at weird-underwater-game.html — no download, no sign-up.</p>
+          </div>
+          <ul class="game-facts">
+            <li>Start with 5, unlock all 20 <span>Axolotl, Leafy Seadragon, Immortal Jellyfish, Clown Frogfish, and Vampire Squid to start — eat to grow and unlock the rest.</span></li>
+            <li>Real food, real predators <span>Every creature eats what it really eats and avoids its real natural enemies, straight from the book.</span></li>
+            <li>No pressure <span>No timers, no score, no lives to keep track of — get caught and you simply start that creature over, growth kept.</span></li>
           </ul>
         </div>
       </div>
@@ -362,7 +386,7 @@
     <div class="wrap">
       <p class="footer-name">Out of Lines Press</p>
       <p class="footer-slogan">COLOR EVERYTHING</p>
-      <p class="footer-links"><a href="https://www.amazon.com/dp/B0HSHPTP1" target="_blank" rel="noopener">Book on Amazon</a> · <a href="coloring-app.html">Color the Free Pack Online</a> · <a href="https://play.outoflinespress.com" target="_blank" rel="noopener">Play Cryptids &amp; Chrome</a> · <a href="mailto:contact@outoflinespress.com">contact@outoflinespress.com</a> · outoflinespress.com</p>
+      <p class="footer-links"><a href="https://www.amazon.com/dp/B0HSHPTP1" target="_blank" rel="noopener">Book on Amazon</a> · <a href="coloring-app.html">Color the Free Pack Online</a> · <a href="weird-underwater-game.html">Play Weird Underwater Creatures Eat Too</a> · <a href="https://play.outoflinespress.com" target="_blank" rel="noopener">Play Cryptids &amp; Chrome</a> · <a href="mailto:contact@outoflinespress.com">contact@outoflinespress.com</a> · outoflinespress.com</p>
     </div>
   </footer>
 </body>
