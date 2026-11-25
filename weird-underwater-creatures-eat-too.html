@@ -1,0 +1,2995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Weird Underwater Creatures Eat Too</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --font-display: 'Fredoka', cursive, sans-serif;
+      --font-body: 'Nunito', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #07223b;
+      font-family: var(--font-body);
+      touch-action: none;
+    }
+
+    h1, h2, h3, .font-storybook {
+      font-family: var(--font-display);
+    }
+
+    #gameCanvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    /* Soft custom scrollbar for creature roster modal */
+    .roster-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .roster-scroll::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 9999px;
+    }
+    .roster-scroll::-webkit-scrollbar-thumb {
+      background: rgba(125, 211, 252, 0.35);
+      border-radius: 9999px;
+    }
+
+    @keyframes gentleFloat {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-4px); }
+    }
+    .animate-float {
+      animation: gentleFloat 3.6s ease-in-out infinite;
+    }
+
+    @keyframes bannerSlide {
+      0% { opacity: 0; transform: translate(-50%, -18px) scale(0.96); }
+      12% { opacity: 1; transform: translate(-50%, 0px) scale(1); }
+      88% { opacity: 1; transform: translate(-50%, 0px) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -12px) scale(0.98); }
+    }
+    .toast-banner {
+      animation: bannerSlide 4.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+  </style>
+</head>
+<body class="text-sky-50 antialiased selection:bg-sky-400/30">
+
+  <!-- Main Ocean Canvas -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- Soft Blue Fade Overlay (used gently when a predator catches the player) -->
+  <div id="fadeOverlay"
+       class="pointer-events-none fixed inset-0 z-20 bg-[#082b49] opacity-0 transition-opacity duration-700 ease-in-out">
+  </div>
+
+  <!-- Top HUD Bar (Minimal, Non-Pressuring, No Timers/Scores/Lives) -->
+  <header id="hudBar" class="pointer-events-none fixed top-0 left-0 right-0 z-30 flex flex-wrap items-center justify-between gap-2 p-3 sm:p-4">
+    <!-- Left: Active Creature Pill & Growth Bar -->
+    <div class="pointer-events-auto flex items-center gap-2.5 rounded-2xl border border-sky-200/20 bg-slate-900/55 px-3 py-2 shadow-lg backdrop-blur-md">
+      <canvas id="hudPortrait" width="42" height="42" class="h-10 w-10 shrink-0 rounded-xl bg-sky-950/70 ring-1 ring-sky-300/20"></canvas>
+      <div class="min-w-[125px] sm:min-w-[165px]">
+        <div class="flex items-baseline justify-between gap-2">
+          <span id="hudCreatureName" class="font-storybook text-sm sm:text-base font-semibold tracking-wide text-sky-100">Axolotl</span>
+          <span id="hudStageLabel" class="rounded-full bg-teal-400/20 px-2 py-0.5 text-[11px] font-bold text-teal-200">Stage 1</span>
+        </div>
+        <!-- Soft Growth Bar -->
+        <div class="mt-1.5 h-2.5 w-full overflow-hidden rounded-full bg-sky-950/90 p-0.5 ring-1 ring-sky-300/20">
+          <div id="hudGrowthFill"
+               class="h-full rounded-full bg-gradient-to-r from-teal-300 via-cyan-300 to-amber-200 transition-all duration-500 ease-out"
+               style="width: 0%;"></div>
+        </div>
+        <div id="hudDietHint" class="mt-1 truncate text-[11px] text-sky-200/80 max-w-[190px] sm:max-w-[260px]">
+          Eats: worms, small fish, insects
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Calm Controls (Creatures Roster, Joystick Toggle, Audio Mute) -->
+    <div class="pointer-events-auto flex items-center gap-2">
+      <button id="btnOpenRoster"
+              type="button"
+              class="flex items-center gap-1.5 rounded-2xl border border-sky-200/25 bg-slate-900/60 px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-sky-100 shadow-lg backdrop-blur-md transition hover:bg-sky-800/60 active:scale-95">
+        <svg class="h-4 w-4 text-amber-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+        </svg>
+        <span>Creatures</span>
+        <span id="hudUnlockCount" class="ml-0.5 rounded-full bg-sky-400/20 px-1.5 py-0.5 text-[11px] font-bold text-sky-200">5/20</span>
+      </button>
+
+      <!-- Optional Virtual Joystick Toggle -->
+      <button id="btnToggleJoystick"
+              type="button"
+              title="Toggle on-screen touch joystick"
+              class="flex items-center justify-center rounded-2xl border border-sky-200/25 bg-slate-900/60 p-2.5 text-sky-100 shadow-lg backdrop-blur-md transition hover:bg-sky-800/60 active:scale-95">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="9" />
+          <circle cx="12" cy="12" r="3" fill="currentColor" />
+        </svg>
+      </button>
+
+      <!-- Optional Phone Tilt Steering Toggle -->
+      <button id="btnToggleTilt"
+              type="button"
+              title="Toggle tilt-to-swim phone motion controls"
+              aria-pressed="false"
+              class="flex items-center gap-1.5 rounded-2xl border border-sky-200/25 bg-slate-900/60 px-3 py-2.5 text-xs sm:text-sm font-semibold text-sky-100 shadow-lg backdrop-blur-md transition hover:bg-sky-800/60 active:scale-95">
+        <svg class="h-4 w-4 shrink-0 text-sky-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="6" y="3" width="12" height="18" rx="2.5" transform="rotate(-12 12 12)" />
+          <path stroke-linecap="round" d="M3 12c0-2.2.8-4.2 2.1-5.7M21 12c0 2.2-.8 4.2-2.1 5.7" />
+        </svg>
+        <span id="tiltLabel">Tilt: OFF</span>
+      </button>
+
+      <!-- Global Mute / Unmute Button -->
+      <button id="btnMute"
+              type="button"
+              aria-label="Toggle Sound and Music"
+              class="flex items-center justify-center rounded-2xl border border-sky-200/25 bg-slate-900/60 p-2.5 text-sky-100 shadow-lg backdrop-blur-md transition hover:bg-sky-800/60 active:scale-95">
+        <!-- Sound On Icon -->
+        <svg id="iconSoundOn" class="h-5 w-5 text-teal-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.54 8.46a5 5 0 010 7.07M19.07 4.93a10 10 0 010 14.14" />
+        </svg>
+        <!-- Sound Muted Icon -->
+        <svg id="iconSoundOff" class="hidden h-5 w-5 text-rose-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M11 5L6 9H2v6h4l5 4V5z" />
+          <line x1="23" y1="9" x2="17" y2="15" stroke-linecap="round" />
+          <line x1="17" y1="9" x2="23" y2="15" stroke-linecap="round" />
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Gentle Notification Toast Container (for growth & unlocks) -->
+  <div id="toastContainer" class="pointer-events-none fixed top-20 left-1/2 z-30 w-full max-w-sm px-4"></div>
+
+  <!-- Subtle Bottom Legend (Eats & Avoids quick reminder, fades softly) -->
+  <div id="bottomLegend" class="pointer-events-none fixed bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 rounded-full border border-sky-200/15 bg-slate-900/50 px-4 py-1.5 text-xs text-sky-100/90 backdrop-blur-md">
+    <span class="flex items-center gap-1.5">
+      <span class="h-2 w-2 rounded-full bg-emerald-300"></span>
+      <span id="legendEats">Eats: worms, small fish, insects</span>
+    </span>
+    <span class="text-sky-300/30">|</span>
+    <span class="flex items-center gap-1.5">
+      <span class="h-2 w-2 rounded-full bg-amber-300"></span>
+      <span id="legendAvoids">Avoid: herons, large fish</span>
+    </span>
+  </div>
+
+  <!-- Optional On-Screen Virtual Joystick (Bottom Left) -->
+  <div id="virtualJoystick"
+       class="fixed bottom-12 left-6 z-20 hidden h-28 w-28 rounded-full border-2 border-sky-200/30 bg-slate-900/40 backdrop-blur-sm touch-none">
+    <div id="joystickKnob"
+         class="pointer-events-none absolute top-1/2 left-1/2 h-11 w-11 -translate-x-1/2 -translate-y-1/2 rounded-full border border-sky-100/50 bg-sky-300/40 shadow-md">
+    </div>
+  </div>
+
+  <!-- Character Select Modal (Launch Screen & Creatures Roster) -->
+  <div id="rosterModal"
+       class="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/75 p-3 sm:p-6 backdrop-blur-md transition-opacity duration-300">
+    <div class="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-sky-200/25 bg-gradient-to-b from-[#0c3559] to-[#072138] shadow-2xl">
+      <!-- Storybook Header -->
+      <div class="relative border-b border-sky-200/15 bg-sky-950/40 px-5 py-4 sm:px-7 sm:py-5">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <p class="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-amber-200/90">
+              Out of Lines Press — Unbelievably Amazing Creatures Found in the Deep
+            </p>
+            <h1 class="mt-0.5 text-xl sm:text-3xl font-bold tracking-tight text-white">
+              Weird Underwater Creatures Eat Too
+            </h1>
+            <p class="mt-1 text-xs sm:text-sm text-sky-200/85">
+              Swim peacefully, eat what each creature loves, grow bigger, and discover all 20 deep-sea friends.
+            </p>
+          </div>
+          <button id="btnCloseRoster"
+                  type="button"
+                  class="rounded-2xl border border-sky-200/20 bg-sky-900/60 px-3.5 py-2 text-xs sm:text-sm font-bold text-sky-100 transition hover:bg-sky-800 active:scale-95">
+            Swim
+          </button>
+        </div>
+      </div>
+
+      <!-- Roster Grid -->
+      <div id="rosterGrid"
+           class="roster-scroll grid flex-1 grid-cols-1 gap-3 overflow-y-auto p-4 sm:grid-cols-2 lg:grid-cols-3 sm:p-6">
+        <!-- Populated dynamically via JS -->
+      </div>
+
+      <!-- Footer Hint -->
+      <div class="border-t border-sky-200/15 bg-sky-950/50 px-5 py-3 text-center text-xs text-sky-200/80">
+        Move with <span class="font-bold text-white">Arrow Keys / WASD</span>, <span class="font-bold text-white">Drag Anywhere</span>, or tap <span class="font-bold text-white">Tilt</span> on mobile. No timers, no scores, no rush.
+      </div>
+    </div>
+  </div>
+
+<script>
+/**
+ * ============================================================================
+ * WEIRD UNDERWATER CREATURES EAT TOO
+ * Based on "Unbelievably Amazing Creatures Found in the Deep" (Part One)
+ * Single-file relaxing 2D isometric ocean game with procedural art & Web Audio.
+ * ============================================================================
+ */
+
+(function () {
+  'use strict';
+
+  // --------------------------------------------------------------------------
+  // 1. COMPLETE ROSTER DATA (5 Starters + 15 Sequential Unlockables = 20)
+  // --------------------------------------------------------------------------
+  const CREATURES = [
+    // --- 5 STARTERS ---
+    {
+      id: 'axolotl',
+      name: 'Axolotl',
+      starter: true,
+      palette: { body: '#f9a8d4', belly: '#fbcfe8', accent: '#f43f5e', gill: '#fb7185', eye: '#1e293b' },
+      eatsText: 'worms, small fish, insects',
+      avoidsText: 'herons, large fish',
+      foods: [
+        { id: 'worm', label: 'Earthworm', kind: 'worm', color: '#f472b6' },
+        { id: 'small_fish', label: 'Small Minnow', kind: 'small_fish', color: '#7dd3fc' },
+        { id: 'insect', label: 'Water Beetle', kind: 'insect', color: '#a3e635' }
+      ],
+      predators: [
+        { id: 'heron', label: 'Great Heron', kind: 'heron', color: '#cbd5e1', speed: 58 },
+        { id: 'large_fish', label: 'Large Bass', kind: 'large_fish', color: '#475569', speed: 54 }
+      ],
+      mealsToGrow: 5
+    },
+    {
+      id: 'leafy_seadragon',
+      name: 'Leafy Seadragon',
+      starter: true,
+      palette: { body: '#eab308', belly: '#fef08a', accent: '#65a30d', gill: '#84cc16', eye: '#1e293b' },
+      eatsText: 'mysid shrimp, plankton',
+      avoidsText: 'larger fish',
+      foods: [
+        { id: 'mysid_shrimp', label: 'Mysid Shrimp', kind: 'shrimp', color: '#fda4af' },
+        { id: 'plankton', label: 'Golden Plankton', kind: 'plankton', color: '#fde047' },
+        { id: 'copepod', label: 'Tiny Copepod', kind: 'copepod', color: '#bef264' }
+      ],
+      predators: [
+        { id: 'larger_fish', label: 'Larger Reef Fish', kind: 'large_fish', color: '#3b82f6', speed: 55 }
+      ],
+      mealsToGrow: 5
+    },
+    {
+      id: 'immortal_jellyfish',
+      name: 'Immortal Jellyfish',
+      starter: true,
+      palette: { body: 'rgba(224, 242, 254, 0.72)', belly: '#f43f5e', accent: '#fb7185', gill: '#fda4af', eye: '#fff' },
+      eatsText: 'plankton, fish eggs',
+      avoidsText: 'sea turtles, larger fish',
+      foods: [
+        { id: 'plankton', label: 'Drifting Plankton', kind: 'plankton', color: '#67e8f9' },
+        { id: 'fish_eggs', label: 'Pearlescent Fish Eggs', kind: 'eggs', color: '#fed7aa' },
+        { id: 'larvae', label: 'Tiny Sea Larva', kind: 'copepod', color: '#f9a8d4' }
+      ],
+      predators: [
+        { id: 'sea_turtle', label: 'Sea Turtle', kind: 'turtle', color: '#15803d', speed: 52 },
+        { id: 'larger_fish', label: 'Larger Fish', kind: 'large_fish', color: '#0284c7', speed: 56 }
+      ],
+      mealsToGrow: 5
+    },
+    {
+      id: 'clown_frogfish',
+      name: 'Clown Frogfish',
+      starter: true,
+      palette: { body: '#fb923c', belly: '#fef3c7', accent: '#ef4444', gill: '#f97316', eye: '#0f172a' },
+      eatsText: 'small fish, shrimp, crabs',
+      avoidsText: 'larger fish, eels',
+      foods: [
+        { id: 'small_fish', label: 'Small Reef Fish', kind: 'small_fish', color: '#38bdf8' },
+        { id: 'shrimp', label: 'Coral Shrimp', kind: 'shrimp', color: '#fb7185' },
+        { id: 'crab', label: 'Little Reef Crab', kind: 'crab', color: '#f87171' }
+      ],
+      predators: [
+        { id: 'larger_fish', label: 'Larger Fish', kind: 'large_fish', color: '#334155', speed: 55 },
+        { id: 'eel', label: 'Moray Eel', kind: 'eel', color: '#4d7c0f', speed: 58 }
+      ],
+      mealsToGrow: 5
+    },
+    {
+      id: 'vampire_squid',
+      name: 'Vampire Squid',
+      starter: true,
+      palette: { body: '#9f1239', belly: '#be123c', accent: '#38bdf8', gill: '#fb7185', eye: '#38bdf8' },
+      eatsText: 'marine snow, drifting bits',
+      avoidsText: 'large fish, whales',
+      foods: [
+        { id: 'marine_snow', label: 'Marine Snow Flake', kind: 'marine_snow', color: '#f1f5f9' },
+        { id: 'drifting_bits', label: 'Drifting Organic Bit', kind: 'organic_bit', color: '#cbd5e1' },
+        { id: 'deep_copepod', label: 'Drifting Floc', kind: 'plankton', color: '#bae6fd' }
+      ],
+      predators: [
+        { id: 'large_fish', label: 'Deep Large Fish', kind: 'large_fish', color: '#1e3a8a', speed: 54 },
+        { id: 'whale', label: 'Deep Diving Whale', kind: 'whale', color: '#334155', speed: 48 }
+      ],
+      mealsToGrow: 5
+    },
+
+    // --- 15 SEQUENTIAL UNLOCKABLES ---
+    {
+      id: 'yeti_crab',
+      name: 'Yeti Crab',
+      starter: false,
+      palette: { body: '#f8fafc', belly: '#e2e8f0', accent: '#fde68a', gill: '#cbd5e1', eye: '#0f172a' },
+      eatsText: 'bacteria, mussels',
+      avoidsText: 'fish, octopuses',
+      foods: [
+        { id: 'bacteria', label: 'Vent Bacteria Puff', kind: 'bacteria', color: '#fef08a' },
+        { id: 'mussel', label: 'Vent Mussel', kind: 'mussel', color: '#6366f1' },
+        { id: 'vent_shrimp', label: 'Vent Shrimp', kind: 'shrimp', color: '#fed7aa' }
+      ],
+      predators: [
+        { id: 'fish', label: 'Deep Vent Fish', kind: 'large_fish', color: '#475569', speed: 55 },
+        { id: 'octopus', label: 'Deep Octopus', kind: 'octopus', color: '#a855f7', speed: 52 }
+      ],
+      mealsToGrow: 6
+    },
+    {
+      id: 'barreleye',
+      name: 'Barreleye',
+      starter: false,
+      palette: { body: '#334155', belly: '#475569', accent: '#4ade80', gill: '#86efac', eye: '#22c55e' },
+      eatsText: 'small crustaceans, jellyfish bits',
+      avoidsText: 'larger fish',
+      foods: [
+        { id: 'small_crustacean', label: 'Small Crustacean', kind: 'copepod', color: '#fda4af' },
+        { id: 'jelly_bits', label: 'Jellyfish Tentacle Bit', kind: 'jelly_bit', color: '#c4b5fd' },
+        { id: 'plankton', label: 'Glowing Copepod', kind: 'plankton', color: '#67e8f9' }
+      ],
+      predators: [
+        { id: 'larger_fish', label: 'Larger Deep Fish', kind: 'large_fish', color: '#1e293b', speed: 56 }
+      ],
+      mealsToGrow: 6
+    },
+    {
+      id: 'giant_isopod',
+      name: 'Giant Isopod',
+      starter: false,
+      palette: { body: '#d6d3d1', belly: '#a8a29e', accent: '#78716c', gill: '#e7e5e4', eye: '#0f172a' },
+      eatsText: 'dead animals, small fish, worms',
+      avoidsText: 'large fish, sharks',
+      foods: [
+        { id: 'dead_animals', label: 'Sunken Fish Morsel', kind: 'carrion', color: '#fca5a5' },
+        { id: 'small_fish', label: 'Small Bottom Fish', kind: 'small_fish', color: '#93c5fd' },
+        { id: 'worms', label: 'Seafloor Worm', kind: 'worm', color: '#f9a8d4' }
+      ],
+      predators: [
+        { id: 'large_fish', label: 'Large Deep Fish', kind: 'large_fish', color: '#334155', speed: 54 },
+        { id: 'shark', label: 'Deep Dogfish Shark', kind: 'shark', color: '#475569', speed: 58 }
+      ],
+      mealsToGrow: 6
+    },
+    {
+      id: 'pelican_eel',
+      name: 'Pelican Eel',
+      starter: false,
+      palette: { body: '#1e1b4b', belly: '#312e81', accent: '#f43f5e', gill: '#fb7185', eye: '#fde047' },
+      eatsText: 'small crustaceans, fish, squid',
+      avoidsText: 'larger fish',
+      foods: [
+        { id: 'small_crustaceans', label: 'Deep Crustacean', kind: 'shrimp', color: '#fda4af' },
+        { id: 'fish', label: 'Lantern Minnow', kind: 'small_fish', color: '#7dd3fc' },
+        { id: 'squid', label: 'Tiny Glass Squid', kind: 'squid', color: '#e9d5ff' }
+      ],
+      predators: [
+        { id: 'larger_fish', label: 'Larger Abyssal Fish', kind: 'large_fish', color: '#1e293b', speed: 56 }
+      ],
+      mealsToGrow: 6
+    },
+    {
+      id: 'common_fangtooth',
+      name: 'Common Fangtooth',
+      starter: false,
+      palette: { body: '#27272a', belly: '#3f3f46', accent: '#f8fafc', gill: '#71717a', eye: '#94a3b8' },
+      eatsText: 'small fish, squid, crustaceans',
+      avoidsText: 'larger fish, tuna',
+      foods: [
+        { id: 'small_fish', label: 'Small Deep Fish', kind: 'small_fish', color: '#60a5fa' },
+        { id: 'squid', label: 'Little Squid', kind: 'squid', color: '#f0abfc' },
+        { id: 'crustaceans', label: 'Deep Shrimp', kind: 'shrimp', color: '#fb7185' }
+      ],
+      predators: [
+        { id: 'larger_fish', label: 'Larger Predator Fish', kind: 'large_fish', color: '#1e3a8a', speed: 56 },
+        { id: 'tuna', label: 'Deep-Diving Tuna', kind: 'tuna', color: '#0369a1', speed: 62 }
+      ],
+      mealsToGrow: 6
+    },
+    {
+      id: 'sloanes_viperfish',
+      name: "Sloane's Viperfish",
+      starter: false,
+      palette: { body: '#0f766e', belly: '#115e59', accent: '#5eead4', gill: '#99f6e4', eye: '#fef08a' },
+      eatsText: 'small fish, crustaceans',
+      avoidsText: 'larger fish, sharks',
+      foods: [
+        { id: 'small_fish', label: 'Glowing Lanternfish', kind: 'small_fish', color: '#67e8f9' },
+        { id: 'crustaceans', label: 'Deep Krill', kind: 'shrimp', color: '#fda4af' },
+        { id: 'copepods', label: 'Midwater Crustacean', kind: 'copepod', color: '#a5f3fc' }
+      ],
+      predators: [
+        { id: 'larger_fish', label: 'Larger Fish', kind: 'large_fish', color: '#1e293b', speed: 56 },
+        { id: 'shark', label: 'Deep Shark', kind: 'shark', color: '#334155', speed: 60 }
+      ],
+      mealsToGrow: 7
+    },
+    {
+      id: 'japanese_spider_crab',
+      name: 'Japanese Spider Crab',
+      starter: false,
+      palette: { body: '#ea580c', belly: '#fed7aa', accent: '#fff7ed', gill: '#fb923c', eye: '#0f172a' },
+      eatsText: 'shellfish, dead animals, algae',
+      avoidsText: 'octopuses, large fish',
+      foods: [
+        { id: 'shellfish', label: 'Clam Shellfish', kind: 'mussel', color: '#c4b5fd' },
+        { id: 'dead_animals', label: 'Ocean Floor Morsel', kind: 'carrion', color: '#fca5a5' },
+        { id: 'algae', label: 'Sea Kelp Algae', kind: 'algae', color: '#4ade80' }
+      ],
+      predators: [
+        { id: 'octopus', label: 'Giant Octopus', kind: 'octopus', color: '#c026d3', speed: 54 },
+        { id: 'large_fish', label: 'Large Sea Fish', kind: 'large_fish', color: '#1d4ed8', speed: 56 }
+      ],
+      mealsToGrow: 7
+    },
+    {
+      id: 'coelacanth',
+      name: 'Coelacanth',
+      starter: false,
+      palette: { body: '#1d4ed8', belly: '#3b82f6', accent: '#e0f2fe', gill: '#93c5fd', eye: '#fde047' },
+      eatsText: 'small fish, squid, crustaceans',
+      avoidsText: 'large sharks',
+      foods: [
+        { id: 'small_fish', label: 'Cave Minnow', kind: 'small_fish', color: '#7dd3fc' },
+        { id: 'squid', label: 'Deep Cuttle-Squid', kind: 'squid', color: '#f5d0fe' },
+        { id: 'crustaceans', label: 'Cave Shrimp', kind: 'shrimp', color: '#fda4af' }
+      ],
+      predators: [
+        { id: 'large_sharks', label: 'Large Shark', kind: 'shark', color: '#334155', speed: 58 }
+      ],
+      mealsToGrow: 7
+    },
+    {
+      id: 'peacock_mantis_shrimp',
+      name: 'Peacock Mantis Shrimp',
+      starter: false,
+      palette: { body: '#10b981', belly: '#34d399', accent: '#f43f5e', gill: '#38bdf8', eye: '#f472b6' },
+      eatsText: 'snails, crabs, mollusks',
+      avoidsText: 'large fish, octopuses',
+      foods: [
+        { id: 'snails', label: 'Spiral Sea Snail', kind: 'snail', color: '#fcd34d' },
+        { id: 'crabs', label: 'Small Shore Crab', kind: 'crab', color: '#fb7185' },
+        { id: 'mollusks', label: 'Reef Mollusk', kind: 'mussel', color: '#a78bfa' }
+      ],
+      predators: [
+        { id: 'large_fish', label: 'Large Reef Fish', kind: 'large_fish', color: '#0369a1', speed: 56 },
+        { id: 'octopus', label: 'Reef Octopus', kind: 'octopus', color: '#9333ea', speed: 54 }
+      ],
+      mealsToGrow: 7
+    },
+    {
+      id: 'blue_ringed_octopus',
+      name: 'Blue-ringed Octopus',
+      starter: false,
+      palette: { body: '#facc15', belly: '#fef08a', accent: '#2563eb', gill: '#38bdf8', eye: '#0f172a' },
+      eatsText: 'small crabs, shrimp, mollusks',
+      avoidsText: 'larger fish, eels',
+      foods: [
+        { id: 'small_crabs', label: 'Tiny Hermit Crab', kind: 'crab', color: '#f87171' },
+        { id: 'shrimp', label: 'Tidepool Shrimp', kind: 'shrimp', color: '#fda4af' },
+        { id: 'mollusks', label: 'Small Mollusk', kind: 'snail', color: '#c4b5fd' }
+      ],
+      predators: [
+        { id: 'larger_fish', label: 'Larger Fish', kind: 'large_fish', color: '#0284c7', speed: 55 },
+        { id: 'eel', label: 'Moray Eel', kind: 'eel', color: '#3f6212', speed: 58 }
+      ],
+      mealsToGrow: 7
+    },
+    {
+      id: 'reef_stonefish',
+      name: 'Reef Stonefish',
+      starter: false,
+      palette: { body: '#78716c', belly: '#a8a29e', accent: '#f97316', gill: '#d6d3d1', eye: '#fef08a' },
+      eatsText: 'small fish, shrimp',
+      avoidsText: 'sharks, rays',
+      foods: [
+        { id: 'small_fish', label: 'Reef Damselfish', kind: 'small_fish', color: '#38bdf8' },
+        { id: 'shrimp', label: 'Banded Shrimp', kind: 'shrimp', color: '#fb7185' },
+        { id: 'goby', label: 'Tiny Sand Goby', kind: 'small_fish', color: '#fde047' }
+      ],
+      predators: [
+        { id: 'sharks', label: 'Reef Shark', kind: 'shark', color: '#475569', speed: 58 },
+        { id: 'rays', label: 'Eagle Ray', kind: 'ray', color: '#1e3a8a', speed: 54 }
+      ],
+      mealsToGrow: 8
+    },
+    {
+      id: 'red_lionfish',
+      name: 'Red Lionfish',
+      starter: false,
+      palette: { body: '#dc2626', belly: '#fff1f2', accent: '#991b1b', gill: '#fecdd3', eye: '#0f172a' },
+      eatsText: 'small fish, shrimp, crabs',
+      avoidsText: 'large groupers, sharks',
+      foods: [
+        { id: 'small_fish', label: 'Reef Cardinalfish', kind: 'small_fish', color: '#7dd3fc' },
+        { id: 'shrimp', label: 'Cleaner Shrimp', kind: 'shrimp', color: '#fda4af' },
+        { id: 'crabs', label: 'Coral Crab', kind: 'crab', color: '#fb923c' }
+      ],
+      predators: [
+        { id: 'large_groupers', label: 'Large Grouper', kind: 'grouper', color: '#713f12', speed: 54 },
+        { id: 'sharks', label: 'Reef Shark', kind: 'shark', color: '#475569', speed: 58 }
+      ],
+      mealsToGrow: 8
+    },
+    {
+      id: 'humpback_anglerfish',
+      name: 'Humpback Anglerfish',
+      starter: false,
+      palette: { body: '#3f2e3e', belly: '#5c415d', accent: '#67e8f9', gill: '#a5f3fc', eye: '#e2e8f0' },
+      eatsText: 'small fish, crustaceans',
+      avoidsText: 'larger fish, sharks',
+      foods: [
+        { id: 'small_fish', label: 'Mesopelagic Fish', kind: 'small_fish', color: '#7dd3fc' },
+        { id: 'crustaceans', label: 'Deep Prawn', kind: 'shrimp', color: '#fda4af' },
+        { id: 'copepods', label: 'Glowing Copepod', kind: 'copepod', color: '#a5f3fc' }
+      ],
+      predators: [
+        { id: 'larger_fish', label: 'Larger Deep Fish', kind: 'large_fish', color: '#1e293b', speed: 55 },
+        { id: 'sharks', label: 'Sleeper Shark', kind: 'shark', color: '#334155', speed: 57 }
+      ],
+      mealsToGrow: 8
+    },
+    {
+      id: 'frilled_shark',
+      name: 'Frilled Shark',
+      starter: false,
+      palette: { body: '#57534e', belly: '#78716c', accent: '#f43f5e', gill: '#fda4af', eye: '#34d399' },
+      eatsText: 'squid, fish, small sharks',
+      avoidsText: 'larger sharks',
+      foods: [
+        { id: 'squid', label: 'Deep Arrow Squid', kind: 'squid', color: '#e879f9' },
+        { id: 'fish', label: 'Deep Sea Fish', kind: 'small_fish', color: '#60a5fa' },
+        { id: 'small_sharks', label: 'Small Lanternshark', kind: 'small_shark', color: '#94a3b8' }
+      ],
+      predators: [
+        { id: 'larger_sharks', label: 'Larger Deep Shark', kind: 'shark', color: '#1e293b', speed: 60 }
+      ],
+      mealsToGrow: 8
+    },
+    {
+      id: 'goblin_shark',
+      name: 'Goblin Shark',
+      starter: false,
+      palette: { body: '#f472b6', belly: '#fbcfe8', accent: '#e11d48', gill: '#fda4af', eye: '#38bdf8' },
+      eatsText: 'fish, squid, crabs',
+      avoidsText: 'larger sharks',
+      foods: [
+        { id: 'fish', label: 'Deep Rattail Fish', kind: 'small_fish', color: '#7dd3fc' },
+        { id: 'squid', label: 'Abyssal Squid', kind: 'squid', color: '#d8b4fe' },
+        { id: 'crabs', label: 'Deep Sea Crab', kind: 'crab', color: '#fb7185' }
+      ],
+      predators: [
+        { id: 'larger_sharks', label: 'Larger Abyssal Shark', kind: 'shark', color: '#1e293b', speed: 60 }
+      ],
+      mealsToGrow: 8
+    }
+  ];
+
+  // --------------------------------------------------------------------------
+  // 2. SAVE STATE MANAGEMENT (localStorage)
+  // --------------------------------------------------------------------------
+  const STORAGE_KEY = 'weird_underwater_creatures_save_v1';
+
+  function loadSaveState() {
+    const defaultUnlocked = CREATURES.filter(c => c.starter).map(c => c.id);
+    const defaultProgress = {};
+    CREATURES.forEach(c => {
+      defaultProgress[c.id] = { meals: 0, stage: 1 };
+    });
+
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        return {
+          unlocked: defaultUnlocked,
+          progress: defaultProgress,
+          selectedId: 'axolotl'
+        };
+      }
+      const parsed = JSON.parse(raw);
+      const unlockedSet = new Set([...defaultUnlocked, ...(parsed.unlocked || [])]);
+      const progress = { ...defaultProgress, ...(parsed.progress || {}) };
+      const selectedId = unlockedSet.has(parsed.selectedId) ? parsed.selectedId : 'axolotl';
+      return {
+        unlocked: Array.from(unlockedSet),
+        progress,
+        selectedId
+      };
+    } catch (e) {
+      return {
+        unlocked: defaultUnlocked,
+        progress: defaultProgress,
+        selectedId: 'axolotl'
+      };
+    }
+  }
+
+  function saveStateToDisk() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
+    } catch (e) {
+      // Ignore storage quota errors in restricted frames
+    }
+  }
+
+  const saveData = loadSaveState();
+
+  // --------------------------------------------------------------------------
+  // 3. PROCEDURAL WEB AUDIO ENGINE (Gentle Music, Tension Shift, SFX, Mute)
+  // --------------------------------------------------------------------------
+  class OceanAudioEngine {
+    constructor() {
+      this.ctx = null;
+      this.masterGain = null;
+      this.musicGain = null;
+      this.ambientGain = null;
+      this.sfxGain = null;
+      this.isMuted = false;
+      this.isStarted = false;
+      this.tension = 0; // 0 = calm, 1 = predator near
+      this.noteIndex = 0;
+      this.nextNoteTime = 0;
+      this.schedulerTimer = null;
+
+      // Pentatonic / Lydian peaceful scale frequencies (Hz)
+      this.calmNotes = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25];
+      // Lower, slower minor/phrygian modal variation when predator approaches
+      this.tenseNotes = [164.81, 174.61, 196.00, 220.00, 246.94, 261.63, 293.66, 329.63];
+    }
+
+    init() {
+      if (this.isStarted) {
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+        return;
+      }
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+
+      this.ctx = new AudioCtx();
+      this.masterGain = this.ctx.createGain();
+      this.masterGain.gain.value = this.isMuted ? 0 : 0.75;
+      this.masterGain.connect(this.ctx.destination);
+
+      this.musicGain = this.ctx.createGain();
+      this.musicGain.gain.value = 0.24;
+      this.musicGain.connect(this.masterGain);
+
+      this.ambientGain = this.ctx.createGain();
+      this.ambientGain.gain.value = 0.14;
+      this.ambientGain.connect(this.masterGain);
+
+      this.sfxGain = this.ctx.createGain();
+      this.sfxGain.gain.value = 0.45;
+      this.sfxGain.connect(this.masterGain);
+
+      this.startAmbientWater();
+      this.isStarted = true;
+      this.nextNoteTime = this.ctx.currentTime + 0.15;
+      this.scheduleMusicLoop();
+    }
+
+    setMuted(muted) {
+      this.isMuted = muted;
+      if (this.masterGain && this.ctx) {
+        this.masterGain.gain.setTargetAtTime(muted ? 0 : 0.75, this.ctx.currentTime, 0.06);
+      }
+    }
+
+    setTension(value) {
+      this.tension = Math.max(0, Math.min(1, value));
+    }
+
+    // Soft filtered pink/brown noise imitating gentle underwater current
+    startAmbientWater() {
+      if (!this.ctx) return;
+      const bufferSize = this.ctx.sampleRate * 4;
+      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      let lastOut = 0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        data[i] = (lastOut + 0.02 * white) / 1.02;
+        lastOut = data[i];
+        data[i] *= 2.6;
+      }
+
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = buffer;
+      noise.loop = true;
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 260;
+
+      // Slow wave LFO modulating filter frequency
+      const lfo = this.ctx.createOscillator();
+      lfo.type = 'sine';
+      lfo.frequency.value = 0.14;
+      const lfoGain = this.ctx.createGain();
+      lfoGain.gain.value = 95;
+      lfo.connect(lfoGain);
+      lfoGain.connect(filter.frequency);
+
+      noise.connect(filter);
+      filter.connect(this.ambientGain);
+
+      noise.start();
+      lfo.start();
+    }
+
+    scheduleMusicLoop() {
+      if (!this.ctx) return;
+      const lookahead = 0.25;
+      while (this.nextNoteTime < this.ctx.currentTime + lookahead) {
+        this.playMelodyNote(this.nextNoteTime);
+        // Slower tempo when predator is near
+        const baseStep = this.tension > 0.35 ? 1.35 : 0.95;
+        const jitter = (Math.random() - 0.5) * 0.18;
+        this.nextNoteTime += baseStep + jitter;
+      }
+      this.schedulerTimer = setTimeout(() => this.scheduleMusicLoop(), 120);
+    }
+
+    playMelodyNote(time) {
+      if (!this.ctx || this.isMuted) return;
+      const isTense = this.tension > 0.35;
+      const pool = isTense ? this.tenseNotes : this.calmNotes;
+      const step = Math.floor(Math.random() * 3) - 1;
+      this.noteIndex = (this.noteIndex + step + pool.length) % pool.length;
+      const freq = pool[this.noteIndex];
+
+      const osc = this.ctx.createOscillator();
+      const subOsc = this.ctx.createOscillator();
+      const noteGain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+
+      osc.type = isTense ? 'triangle' : 'sine';
+      subOsc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, time);
+      subOsc.frequency.setValueAtTime(freq * 0.5, time);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(isTense ? 420 : 950, time);
+
+      const dur = isTense ? 2.4 : 1.9;
+      noteGain.gain.setValueAtTime(0.0001, time);
+      noteGain.gain.exponentialRampToValueAtTime(isTense ? 0.22 : 0.18, time + 0.28);
+      noteGain.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+
+      osc.connect(filter);
+      subOsc.connect(filter);
+      filter.connect(noteGain);
+      noteGain.connect(this.musicGain);
+
+      osc.start(time);
+      subOsc.start(time);
+      osc.stop(time + dur + 0.05);
+      subOsc.stop(time + dur + 0.05);
+    }
+
+    // Soft munch / pop sound when eating food
+    playMunch() {
+      this.init();
+      if (!this.ctx || this.isMuted) return;
+      const now = this.ctx.currentTime;
+
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      const baseFreq = 320 + Math.random() * 90;
+      osc.frequency.setValueAtTime(baseFreq, now);
+      osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.65, now + 0.09);
+      osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.15, now + 0.17);
+
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.exponentialRampToValueAtTime(0.32, now + 0.025);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(now);
+      osc.stop(now + 0.2);
+    }
+
+    // Gentle celebratory chime when growing a stage / unlocking a creature
+    playGrowChime() {
+      this.init();
+      if (!this.ctx || this.isMuted) return;
+      const now = this.ctx.currentTime;
+      const notes = [392.0, 493.88, 587.33, 783.99];
+      notes.forEach((freq, idx) => {
+        const t = now + idx * 0.12;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, t);
+        gain.gain.setValueAtTime(0.001, t);
+        gain.gain.exponentialRampToValueAtTime(0.24, t + 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.75);
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.start(t);
+        osc.stop(t + 0.8);
+      });
+    }
+
+    // Sad gentle chime when caught + short low tone during blue fade reset
+    playGentleCatch() {
+      this.init();
+      if (!this.ctx || this.isMuted) return;
+      const now = this.ctx.currentTime;
+
+      // 1. Sad gentle descending chime (E4 -> C4 -> A3)
+      const sadNotes = [329.63, 261.63, 220.0];
+      sadNotes.forEach((freq, i) => {
+        const t = now + i * 0.22;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, t);
+        gain.gain.setValueAtTime(0.001, t);
+        gain.gain.exponentialRampToValueAtTime(0.24, t + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.65);
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.start(t);
+        osc.stop(t + 0.7);
+      });
+
+      // 2. Short low soothing tone as screen fades to blue
+      const lowTime = now + 0.55;
+      const lowOsc = this.ctx.createOscillator();
+      const lowGain = this.ctx.createGain();
+      lowOsc.type = 'sine';
+      lowOsc.frequency.setValueAtTime(130.81, lowTime);
+      lowOsc.frequency.exponentialRampToValueAtTime(98.0, lowTime + 0.85);
+      lowGain.gain.setValueAtTime(0.001, lowTime);
+      lowGain.gain.exponentialRampToValueAtTime(0.26, lowTime + 0.15);
+      lowGain.gain.exponentialRampToValueAtTime(0.001, lowTime + 0.9);
+      lowOsc.connect(lowGain);
+      lowGain.connect(this.sfxGain);
+      lowOsc.start(lowTime);
+      lowOsc.stop(lowTime + 0.95);
+    }
+  }
+
+  const audio = new OceanAudioEngine();
+
+  // --------------------------------------------------------------------------
+  // 4. CUSTOM STORYBOOK PROCEDURAL ILLUSTRATION RENDERER
+  //    Draws every creature, food item, and predator with soft outlines & charm
+  // --------------------------------------------------------------------------
+  function drawCreatureArt(ctx, creatureId, palette, time, scale = 1, facingLeft = false, alpha = 1) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.scale(facingLeft ? -scale : scale, scale);
+
+    const swim = Math.sin(time * 3.2);
+    const tailWag = Math.sin(time * 4.5) * 0.22;
+
+    // Soft isometric drop shadow underneath creature
+    ctx.save();
+    ctx.fillStyle = 'rgba(4, 19, 36, 0.24)';
+    ctx.beginPath();
+    ctx.ellipse(0, 26, 26, 9, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    switch (creatureId) {
+      case 'axolotl': {
+        // Tail
+        ctx.save();
+        ctx.translate(-18, 2);
+        ctx.rotate(tailWag);
+        ctx.fillStyle = palette.belly;
+        ctx.strokeStyle = '#be185d';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, -7);
+        ctx.quadraticCurveTo(-24, -12, -32, 0);
+        ctx.quadraticCurveTo(-24, 12, 0, 7);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+
+        // Cute little legs
+        ctx.strokeStyle = palette.body;
+        ctx.lineWidth = 4.5;
+        [-8, 8].forEach((lx, idx) => {
+          const legSwing = Math.sin(time * 4 + idx) * 3;
+          ctx.beginPath();
+          ctx.moveTo(lx, 9);
+          ctx.lineTo(lx - 3 + legSwing, 18);
+          ctx.stroke();
+        });
+
+        // Torso & Head
+        ctx.fillStyle = palette.body;
+        ctx.strokeStyle = '#9d174d';
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.ellipse(-2, 1, 22, 12, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Head
+        ctx.beginPath();
+        ctx.ellipse(15, -1, 13, 11.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Feathery External Gills (3 on each side)
+        ctx.strokeStyle = palette.accent;
+        ctx.lineWidth = 3;
+        [-1, 1].forEach(side => {
+          for (let g = 0; g < 3; g++) {
+            const angle = (-0.5 + g * 0.45) + swim * 0.08;
+            ctx.beginPath();
+            ctx.moveTo(9, side * 8);
+            ctx.lineTo(4 - g * 2, side * (17 + g * 2.5) + Math.cos(time * 4 + g) * 1.5);
+            ctx.stroke();
+          }
+        });
+
+        // Friendly Eyes & Smile
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath();
+        ctx.arc(21, -4, 2.3, 0, Math.PI * 2);
+        ctx.arc(21, 3, 2.3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#9d174d';
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.arc(24, -0.5, 4, -0.5, 0.6);
+        ctx.stroke();
+        break;
+      }
+
+      case 'leafy_seadragon': {
+        // S-curved body
+        ctx.strokeStyle = '#3f6212';
+        ctx.lineWidth = 2;
+        ctx.fillStyle = palette.body;
+        ctx.beginPath();
+        ctx.moveTo(24, -6);
+        ctx.lineTo(35, -7); // Snout
+        ctx.lineTo(35, -3);
+        ctx.lineTo(23, -1);
+        ctx.quadraticCurveTo(14, 12, 2, 6);
+        ctx.quadraticCurveTo(-12, -4, -22, 8);
+        ctx.quadraticCurveTo(-28, 16, -34, 12);
+        ctx.quadraticCurveTo(-26, 2, -16, -4);
+        ctx.quadraticCurveTo(-2, -10, 10, -2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Leafy appendages
+        const leaves = [
+          { x: 10, y: -11, r: -0.4 },
+          { x: -3, y: -14, r: -0.8 },
+          { x: -16, y: -10, r: -1.1 },
+          { x: -6, y: 12, r: 0.7 },
+          { x: -20, y: 14, r: 1.1 }
+        ];
+        leaves.forEach((lf, i) => {
+          ctx.save();
+          ctx.translate(lf.x, lf.y);
+          ctx.rotate(lf.r + Math.sin(time * 3 + i) * 0.14);
+          ctx.fillStyle = palette.gill;
+          ctx.beginPath();
+          ctx.ellipse(0, -6, 4.5, 9, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        });
+
+        // Eye
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(22, -5, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      }
+
+      case 'immortal_jellyfish': {
+        const pulse = Math.sin(time * 3.4) * 3;
+        // Flowing translucent tentacles
+        ctx.strokeStyle = palette.accent;
+        ctx.lineWidth = 1.8;
+        for (let t = -3; t <= 3; t++) {
+          ctx.beginPath();
+          ctx.moveTo(t * 4.5, 4);
+          ctx.quadraticCurveTo(t * 6 + swim * 4, 15, t * 4 - swim * 5, 25);
+          ctx.stroke();
+        }
+        // Bell dome
+        ctx.fillStyle = palette.body;
+        ctx.strokeStyle = '#bae6fd';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 2, 19 - pulse * 0.5, Math.PI, 0, false);
+        ctx.quadraticCurveTo(10, 7 + pulse * 0.4, 0, 5);
+        ctx.quadraticCurveTo(-10, 7 + pulse * 0.4, -(19 - pulse * 0.5), 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Glowing crimson inner organ core
+        ctx.fillStyle = palette.belly;
+        ctx.beginPath();
+        ctx.ellipse(0, -4, 6, 7, 0, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      }
+
+      case 'clown_frogfish': {
+        // Plump bumpy body
+        ctx.fillStyle = palette.body;
+        ctx.strokeStyle = '#9a3412';
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.ellipse(0, 2, 22, 16, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Cream clown spots
+        ctx.fillStyle = palette.belly;
+        ctx.beginPath();
+        ctx.arc(-7, -3, 6, 0, Math.PI * 2);
+        ctx.arc(7, 5, 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Arm-like pectoral fin
+        ctx.fillStyle = palette.accent;
+        ctx.beginPath();
+        ctx.ellipse(3, 12, 6, 9, 0.4 + swim * 0.15, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Fishing rod lure (illicium) on forehead
+        ctx.strokeStyle = '#fef08a';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(15, -10);
+        ctx.quadraticCurveTo(22, -22, 27 + swim * 2, -16);
+        ctx.stroke();
+        ctx.fillStyle = '#fef08a';
+        ctx.beginPath();
+        ctx.arc(27 + swim * 2, -16, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Grumpy-cute mouth & eye
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(14, -4, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#7c2d12';
+        ctx.beginPath();
+        ctx.arc(20, 4, 5, 1.2, 2.4);
+        ctx.stroke();
+        break;
+      }
+
+      case 'vampire_squid': {
+        // Ear fins flapping gently
+        ctx.fillStyle = palette.body;
+        ctx.strokeStyle = '#4c0519';
+        ctx.lineWidth = 2;
+        [-1, 1].forEach(side => {
+          ctx.save();
+          ctx.translate(-12, side * 9);
+          ctx.rotate(side * (0.3 + swim * 0.25));
+          ctx.beginPath();
+          ctx.ellipse(0, side * 6, 5, 9, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        });
+
+        // Mantle & Webbed Cape
+        ctx.beginPath();
+        ctx.moveTo(-26, 0);
+        ctx.quadraticCurveTo(-14, -15, 6, -13);
+        ctx.lineTo(24, -16 + swim * 2);
+        ctx.quadraticCurveTo(16, 0, 24, 16 - swim * 2);
+        ctx.lineTo(6, 13);
+        ctx.quadraticCurveTo(-14, 15, -26, 0);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Glowing blue eyes
+        ctx.fillStyle = palette.eye;
+        ctx.beginPath();
+        ctx.arc(4, -5, 3.3, 0, Math.PI * 2);
+        ctx.arc(4, 5, 3.3, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      }
+
+      case 'yeti_crab': {
+        // Hairy white/blonde claws
+        ctx.fillStyle = palette.body;
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 2;
+        [-1, 1].forEach(side => {
+          ctx.save();
+          ctx.translate(10, side * 12);
+          ctx.rotate(side * (0.25 + swim * 0.1));
+          ctx.beginPath();
+          ctx.ellipse(10, 0, 12, 6, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          // Golden bacteria fur fringe
+          ctx.strokeStyle = '#fde047';
+          ctx.lineWidth = 1.5;
+          for (let f = 2; f <= 16; f += 4) {
+            ctx.beginPath();
+            ctx.moveTo(f, side * 5);
+            ctx.lineTo(f + 1, side * 9);
+            ctx.stroke();
+          }
+          ctx.restore();
+        });
+
+        // Walking legs
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 3;
+        for (let i = -1; i <= 1; i++) {
+          ctx.beginPath();
+          ctx.moveTo(i * 6, -10);
+          ctx.lineTo(i * 8 - 4, -19 + swim * 2);
+          ctx.moveTo(i * 6, 10);
+          ctx.lineTo(i * 8 - 4, 19 - swim * 2);
+          ctx.stroke();
+        }
+
+        // Carapace
+        ctx.fillStyle = palette.body;
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(-2, 0, 15, 13, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        break;
+      }
+
+      case 'barreleye': {
+        // Dark fish body
+        ctx.fillStyle = palette.body;
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-26, -8);
+        ctx.lineTo(-16, 0);
+        ctx.lineTo(-26, 8);
+        ctx.quadraticCurveTo(-8, 12, 10, 10);
+        ctx.lineTo(10, -10);
+        ctx.quadraticCurveTo(-8, -12, -26, -8);
+        ctx.fill();
+        ctx.stroke();
+
+        // Transparent dome head
+        ctx.fillStyle = 'rgba(186, 230, 253, 0.36)';
+        ctx.strokeStyle = '#7dd3fc';
+        ctx.beginPath();
+        ctx.arc(11, 0, 12, -Math.PI * 0.55, Math.PI * 0.55);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Glowing green tubular upward-looking eyes inside dome
+        ctx.fillStyle = palette.eye;
+        ctx.beginPath();
+        ctx.ellipse(12, -3.5, 3.5, 4.5, 0, 0, Math.PI * 2);
+        ctx.ellipse(12, 3.5, 3.5, 4.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      }
+
+      case 'giant_isopod': {
+        // Segmented armored plates
+        ctx.fillStyle = palette.body;
+        ctx.strokeStyle = '#57534e';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 25, 13, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        for (let s = -14; s <= 10; s += 6) {
+          ctx.beginPath();
+          ctx.moveTo(s, -12);
+          ctx.quadraticCurveTo(s - 3, 0, s, 12);
+          ctx.stroke();
+        }
+        // Antennae
+        ctx.beginPath();
+        ctx.moveTo(22, -4);
+        ctx.quadraticCurveTo(32, -10, 36, -6);
+        ctx.moveTo(22, 4);
+        ctx.quadraticCurveTo(32, 10, 36, 6);
+        ctx.stroke();
+        break;
+      }
+
+      case 'pelican_eel': {
+        // Whip tail
+        ctx.strokeStyle = palette.body;
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        ctx.moveTo(-4, 0);
+        ctx.quadraticCurveTo(-20, swim * 10, -36, -swim * 8);
+        ctx.stroke();
+        // Glowing pink tail tip
+        ctx.fillStyle = palette.accent;
+        ctx.beginPath();
+        ctx.arc(-36, -swim * 8, 2.8, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Enormous pelican pouch jaw
+        ctx.fillStyle = palette.belly;
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-4, -5);
+        ctx.lineTo(28, -4);
+        ctx.quadraticCurveTo(22, 16, -2, 8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = palette.eye;
+        ctx.beginPath();
+        ctx.arc(24, -2, 2, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      }
+
+      case 'common_fangtooth': {
+        ctx.fillStyle = palette.body;
+        ctx.strokeStyle = '#09090b';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 22, 15, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        // Tail
+        ctx.beginPath();
+        ctx.moveTo(-20, 0);
+        ctx.lineTo(-30, -8);
+        ctx.lineTo(-30, 8);
+        ctx.closePath();
+        ctx.fill();
+        // Oversized needle fangs
+        ctx.strokeStyle = '#f8fafc';
+        ctx.lineWidth = 1.8;
+        [14, 18, 21].forEach(fx => {
+          ctx.beginPath();
+          ctx.moveTo(fx, 6);
+          ctx.lineTo(fx + 1, -2);
+          ctx.moveTo(fx, -4);
+          ctx.lineTo(fx + 1, 3);
+          ctx.stroke();
+        });
+        ctx.fillStyle = '#cbd5e1';
+        ctx.beginPath();
+        ctx.arc(13, -6, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      }
+
+      case 'sloanes_viperfish': {
+        ctx.fillStyle = palette.body;
+        ctx.strokeStyle = '#042f2e';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-32, 0);
+        ctx.quadraticCurveTo(-8, -9 + swim * 2, 22, -7);
+        ctx.lineTo(26, 4);
+        ctx.quadraticCurveTo(-8, 9 + swim * 2, -32, 0);
+        ctx.fill();
+        ctx.stroke();
+        // Long dorsal spine lure
+        ctx.strokeStyle = palette.accent;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(8, -7);
+        ctx.quadraticCurveTo(22, -20, 30, -10);
+        ctx.stroke();
+        // Long curved fangs
+        ctx.strokeStyle = '#f8fafc';
+        ctx.beginPath();
+        ctx.moveTo(20, 3);
+        ctx.lineTo(22, -6);
+        ctx.moveTo(24, 3);
+        ctx.lineTo(26, -5);
+        ctx.stroke();
+        break;
+      }
+
+      case 'japanese_spider_crab': {
+        // Very long spindly orange legs
+        ctx.strokeStyle = palette.body;
+        ctx.lineWidth = 2.4;
+        for (let i = -2; i <= 2; i++) {
+          const swing = Math.sin(time * 3 + i) * 3;
+          ctx.beginPath();
+          ctx.moveTo(i * 4, -8);
+          ctx.lineTo(i * 7, -21 + swing);
+          ctx.lineTo(i * 9 - 4, -27 + swing);
+          ctx.moveTo(i * 4, 8);
+          ctx.lineTo(i * 7, 21 - swing);
+          ctx.lineTo(i * 9 - 4, 27 - swing);
+          ctx.stroke();
+        }
+        // Pear-shaped carapace
+        ctx.fillStyle = palette.body;
+        ctx.strokeStyle = '#7c2d12';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(-1, 0, 14, 11, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        break;
+      }
+
+      case 'coelacanth': {
+        // Lobed fins & triple tail
+        ctx.fillStyle = palette.belly;
+        ctx.strokeStyle = '#1e3a8a';
+        ctx.lineWidth = 2;
+        // Triple tail fin
+        ctx.beginPath();
+        ctx.moveTo(-20, -6);
+        ctx.lineTo(-33, -10);
+        ctx.lineTo(-31, 0);
+        ctx.lineTo(-35, 0);
+        ctx.lineTo(-31, 3);
+        ctx.lineTo(-33, 10);
+        ctx.lineTo(-20, 6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Thick ancient body
+        ctx.fillStyle = palette.body;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 23, 12, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // White speckled scales
+        ctx.fillStyle = palette.accent;
+        [[-8, -3], [0, 3], [6, -4], [-3, -5], [9, 2]].forEach(([sx, sy]) => {
+          ctx.beginPath();
+          ctx.arc(sx, sy, 1.6, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        break;
+      }
+
+      case 'peacock_mantis_shrimp': {
+        // Colorful segmented shell
+        ctx.fillStyle = palette.body;
+        ctx.strokeStyle = '#065f46';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 24, 9, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        // Raptorial smasher clubs
+        ctx.fillStyle = palette.accent;
+        ctx.beginPath();
+        ctx.arc(18, -6, 4.5, 0, Math.PI * 2);
+        ctx.arc(18, 6, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+        // Stalked rainbow eyes
+        ctx.fillStyle = palette.eye;
+        ctx.beginPath();
+        ctx.arc(25, -4, 3, 0, Math.PI * 2);
+        ctx.arc(25, 4, 3, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      }
+
+      case 'blue_ringed_octopus': {
+        // Waving arms
+        ctx.strokeStyle = palette.body;
+        ctx.lineWidth = 3.8;
+        for (let a = -2; a <= 2; a++) {
+          ctx.beginPath();
+          ctx.moveTo(4, a * 3);
+          ctx.quadraticCurveTo(18, a * 7 + swim * 3, 28, a * 6 - swim * 3);
+          ctx.stroke();
+        }
+        // Bulbous golden head
+        ctx.fillStyle = palette.body;
+        ctx.strokeStyle = '#a16207';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(-8, 0, 14, 11, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        // Iridescent blue rings
+        ctx.strokeStyle = palette.accent;
+        ctx.lineWidth = 2.2;
+        [[-11, -4], [-5, 4], [-14, 3]].forEach(([rx, ry]) => {
+          ctx.beginPath();
+          ctx.arc(rx, ry, 3, 0, Math.PI * 2);
+          ctx.stroke();
+        });
+        break;
+      }
+
+      case 'reef_stonefish': {
+        // Camouflaged bumpy stone body
+        ctx.fillStyle = palette.body;
+        ctx.strokeStyle = '#44403c';
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.moveTo(-22, 6);
+        ctx.lineTo(-14, -10);
+        ctx.lineTo(-4, -14);
+        ctx.lineTo(8, -11);
+        ctx.lineTo(22, -3);
+        ctx.lineTo(18, 10);
+        ctx.lineTo(-18, 10);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        // Orange lichen patches
+        ctx.fillStyle = palette.accent;
+        ctx.beginPath();
+        ctx.arc(-5, -2, 4, 0, Math.PI * 2);
+        ctx.arc(7, 2, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      }
+
+      case 'red_lionfish': {
+        // Fan-like striped spines
+        ctx.strokeStyle = palette.body;
+        ctx.lineWidth = 2.6;
+        for (let s = -4; s <= 4; s++) {
+          const angle = s * 0.28 + swim * 0.06;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(Math.cos(angle - Math.PI * 0.5) * 24, Math.sin(angle - Math.PI * 0.5) * 22);
+          ctx.moveTo(0, 0);
+          ctx.lineTo(Math.cos(angle + Math.PI * 0.5) * 24, Math.sin(angle + Math.PI * 0.5) * 22);
+          ctx.stroke();
+        }
+        // Striped body
+        ctx.fillStyle = palette.belly;
+        ctx.strokeStyle = palette.accent;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 18, 10, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        // Red stripes
+        ctx.fillStyle = palette.body;
+        [-8, -1, 6].forEach(sx => {
+          ctx.fillRect(sx, -8, 3.5, 16);
+        });
+        break;
+      }
+
+      case 'humpback_anglerfish': {
+        // Round deep-sea body
+        ctx.fillStyle = palette.body;
+        ctx.strokeStyle = '#1e1b4b';
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.ellipse(-2, 2, 20, 16, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        // Glowing esca lantern
+        ctx.strokeStyle = '#cbd5e1';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(8, -12);
+        ctx.quadraticCurveTo(22, -24, 28, -11);
+        ctx.stroke();
+        ctx.fillStyle = palette.accent;
+        ctx.beginPath();
+        ctx.arc(28, -11, 4.2, 0, Math.PI * 2);
+        ctx.fill();
+        // Little teeth
+        ctx.strokeStyle = '#f8fafc';
+        ctx.lineWidth = 1.6;
+        [12, 16].forEach(tx => {
+          ctx.beginPath();
+          ctx.moveTo(tx, 7);
+          ctx.lineTo(tx + 1, 2);
+          ctx.stroke();
+        });
+        break;
+      }
+
+      case 'frilled_shark': {
+        // Eel-like shark body
+        ctx.fillStyle = palette.body;
+        ctx.strokeStyle = '#292524';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-34, 0);
+        ctx.quadraticCurveTo(-12, -10 + swim * 3, 25, -4);
+        ctx.quadraticCurveTo(28, 2, 23, 6);
+        ctx.quadraticCurveTo(-12, 10 + swim * 3, -34, 0);
+        ctx.fill();
+        ctx.stroke();
+        // Frilly red-tinged gill slits
+        ctx.strokeStyle = palette.accent;
+        ctx.lineWidth = 1.8;
+        for (let g = 4; g <= 12; g += 2.2) {
+          ctx.beginPath();
+          ctx.moveTo(g, -4);
+          ctx.lineTo(g - 1, 4);
+          ctx.stroke();
+        }
+        break;
+      }
+
+      case 'goblin_shark': {
+        // Long flattened blade snout
+        ctx.fillStyle = palette.body;
+        ctx.strokeStyle = '#9d174d';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(-30, -7);
+        ctx.lineTo(-20, 0);
+        ctx.lineTo(-30, 7);
+        ctx.quadraticCurveTo(-10, 11, 14, 7);
+        ctx.lineTo(35, -2); // Long blade rostrum
+        ctx.lineTo(14, -6);
+        ctx.quadraticCurveTo(-10, -11, -30, -7);
+        ctx.fill();
+        ctx.stroke();
+        // Eye
+        ctx.fillStyle = palette.eye;
+        ctx.beginPath();
+        ctx.arc(15, -2, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      }
+    }
+
+    ctx.restore();
+  }
+
+  // Draw at least 3 distinct food types per creature
+  function drawFoodArt(ctx, food, time) {
+    ctx.save();
+    const bob = Math.sin(time * 2.5 + food.phase) * 2.5;
+    ctx.translate(food.x, food.y + bob);
+
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    switch (food.kind) {
+      case 'worm': {
+        ctx.strokeStyle = food.color;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(-10, 0);
+        ctx.quadraticCurveTo(-4, -6 + Math.sin(time * 5 + food.phase) * 4, 2, 0);
+        ctx.quadraticCurveTo(8, 6 - Math.sin(time * 5 + food.phase) * 4, 12, -1);
+        ctx.stroke();
+        break;
+      }
+      case 'small_fish': {
+        ctx.fillStyle = food.color;
+        ctx.strokeStyle = '#0f172a';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 9, 4.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(-8, 0);
+        ctx.lineTo(-13, -4);
+        ctx.lineTo(-13, 4);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(5, -1, 1.2, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      }
+      case 'insect': {
+        ctx.fillStyle = food.color;
+        ctx.strokeStyle = '#1a2e05';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 6.5, 4.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        // Little insect legs
+        ctx.beginPath();
+        ctx.moveTo(-2, -4); ctx.lineTo(-4, -8);
+        ctx.moveTo(2, -4); ctx.lineTo(4, -8);
+        ctx.moveTo(-2, 4); ctx.lineTo(-4, 8);
+        ctx.moveTo(2, 4); ctx.lineTo(4, 8);
+        ctx.stroke();
+        break;
+      }
+      case 'shrimp': {
+        ctx.strokeStyle = food.color;
+        ctx.lineWidth = 4.2;
+        ctx.beginPath();
+        ctx.arc(0, 2, 7, Math.PI * 1.1, Math.PI * 1.95);
+        ctx.stroke();
+        // Whiskers
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(6, 0);
+        ctx.lineTo(13, -4);
+        ctx.moveTo(6, 2);
+        ctx.lineTo(13, 3);
+        ctx.stroke();
+        break;
+      }
+      case 'plankton': {
+        ctx.fillStyle = food.color;
+        ctx.beginPath();
+        ctx.arc(0, 0, 4.2, 0, Math.PI * 2);
+        ctx.arc(5, -3, 2.5, 0, Math.PI * 2);
+        ctx.arc(-4, 3, 2.8, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      }
+      case 'copepod': {
+        ctx.fillStyle = food.color;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 5.5, 3.2, 0.3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = food.color;
+        ctx.lineWidth = 1.3;
+        ctx.beginPath();
+        ctx.moveTo(4, -2); ctx.lineTo(10, -6);
+        ctx.moveTo(4, 2); ctx.lineTo(10, 6);
+        ctx.stroke();
+        break;
+      }
+      case 'eggs': {
+        ctx.fillStyle = food.color;
+        ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+        ctx.lineWidth = 1;
+        [[-3, -2], [3, -2], [0, 3], [4, 3]].forEach(([ex, ey]) => {
+          ctx.beginPath();
+          ctx.arc(ex, ey, 3.2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        });
+        break;
+      }
+      case 'crab': {
+        ctx.fillStyle = food.color;
+        ctx.strokeStyle = '#450a0a';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 7, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(-6, -5, 2.5, 0, Math.PI * 2);
+        ctx.arc(6, -5, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      }
+      case 'marine_snow':
+      case 'organic_bit': {
+        ctx.fillStyle = food.color;
+        ctx.beginPath();
+        ctx.arc(0, 0, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.45)';
+        ctx.beginPath();
+        ctx.arc(0, 0, 7.5, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      }
+      case 'bacteria': {
+        ctx.fillStyle = food.color;
+        for (let b = 0; b < 5; b++) {
+          const ang = (b / 5) * Math.PI * 2;
+          ctx.beginPath();
+          ctx.arc(Math.cos(ang) * 4, Math.sin(ang) * 4, 3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        break;
+      }
+      case 'mussel':
+      case 'snail': {
+        ctx.fillStyle = food.color;
+        ctx.strokeStyle = '#1e1b4b';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 7.5, 5, -0.3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(1, 0, 2.5, 0, Math.PI * 1.5);
+        ctx.stroke();
+        break;
+      }
+      case 'jelly_bit': {
+        ctx.strokeStyle = food.color;
+        ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        ctx.moveTo(-7, -3);
+        ctx.bezierCurveTo(-2, 5, 3, -5, 8, 3);
+        ctx.stroke();
+        break;
+      }
+      case 'carrion': {
+        ctx.fillStyle = food.color;
+        ctx.strokeStyle = '#7f1d1d';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.roundRect(-7, -4.5, 14, 9, 4);
+        ctx.fill();
+        ctx.stroke();
+        break;
+      }
+      case 'squid': {
+        ctx.fillStyle = food.color;
+        ctx.beginPath();
+        ctx.moveTo(9, 0);
+        ctx.lineTo(-3, -5);
+        ctx.lineTo(-3, 5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = food.color;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(-3, -2); ctx.lineTo(-10, -4);
+        ctx.moveTo(-3, 2); ctx.lineTo(-10, 4);
+        ctx.stroke();
+        break;
+      }
+      case 'algae': {
+        ctx.strokeStyle = food.color;
+        ctx.lineWidth = 3.2;
+        ctx.beginPath();
+        ctx.moveTo(0, 8);
+        ctx.quadraticCurveTo(-5, 0, 2, -8);
+        ctx.stroke();
+        break;
+      }
+      case 'small_shark': {
+        ctx.fillStyle = food.color;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 11, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(0, -3);
+        ctx.lineTo(-3, -8);
+        ctx.lineTo(3, -3);
+        ctx.fill();
+        break;
+      }
+      default: {
+        ctx.fillStyle = food.color;
+        ctx.beginPath();
+        ctx.arc(0, 0, 5.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+
+  // Draw gentle predators with clear silhouettes & soft warning aura
+  function drawPredatorArt(ctx, pred, time, distToPlayer) {
+    ctx.save();
+    ctx.translate(pred.x, pred.y);
+
+    // Soft warning ripple / aura around predator so player always sees it coming
+    const proximity = Math.max(0, 1 - distToPlayer / 320);
+    const pulse = (Math.sin(time * 3) + 1) * 0.5;
+    const auraRadius = 46 + pulse * 10 + proximity * 14;
+
+    const grad = ctx.createRadialGradient(0, 0, 12, 0, 0, auraRadius);
+    grad.addColorStop(0, `rgba(251, 191, 36, ${0.12 + proximity * 0.22})`);
+    grad.addColorStop(1, 'rgba(251, 191, 36, 0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(0, 0, auraRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Subtle dashed warning ring
+    ctx.strokeStyle = `rgba(253, 224, 71, ${0.22 + proximity * 0.45})`;
+    ctx.lineWidth = 1.6;
+    ctx.setLineDash([6, 6]);
+    ctx.beginPath();
+    ctx.arc(0, 0, 38 + pulse * 5, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Flip horizontally based on travel direction
+    if (pred.vx < 0) {
+      ctx.scale(-1, 1);
+    }
+
+    const tail = Math.sin(time * 4 + pred.phase) * 0.2;
+    ctx.fillStyle = pred.color;
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 2.4;
+
+    switch (pred.kind) {
+      case 'heron': {
+        // Wading bird silhouette reaching into shallow water
+        ctx.beginPath();
+        ctx.ellipse(-6, -4, 24, 14, -0.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        // Long neck & beak
+        ctx.beginPath();
+        ctx.moveTo(14, -8);
+        ctx.quadraticCurveTo(26, -16, 30, -4);
+        ctx.lineTo(48, 0); // Pointed heron beak
+        ctx.lineTo(26, 4);
+        ctx.quadraticCurveTo(18, -2, 10, 2);
+        ctx.fill();
+        ctx.stroke();
+        break;
+      }
+      case 'turtle': {
+        // Sea turtle shell & flippers
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 26, 17, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        // Flippers
+        ctx.beginPath();
+        ctx.ellipse(8, -18, 7, 13, 0.5 + tail, 0, Math.PI * 2);
+        ctx.ellipse(8, 18, 7, 13, -0.5 - tail, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        // Head
+        ctx.beginPath();
+        ctx.ellipse(29, 0, 8, 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        break;
+      }
+      case 'eel': {
+        ctx.strokeStyle = pred.color;
+        ctx.lineWidth = 13;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(-36, Math.sin(time * 4) * 8);
+        ctx.quadraticCurveTo(-12, -12, 10, 6);
+        ctx.quadraticCurveTo(24, 14, 34, 0);
+        ctx.stroke();
+        break;
+      }
+      case 'whale': {
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 44, 20, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(-40, 0);
+        ctx.lineTo(-54, -14);
+        ctx.lineTo(-54, 14);
+        ctx.closePath();
+        ctx.fill();
+        break;
+      }
+      case 'octopus': {
+        ctx.beginPath();
+        ctx.ellipse(-10, 0, 18, 14, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.strokeStyle = pred.color;
+        ctx.lineWidth = 5;
+        for (let a = -2; a <= 2; a++) {
+          ctx.beginPath();
+          ctx.moveTo(4, a * 4);
+          ctx.quadraticCurveTo(20, a * 9 + tail * 15, 34, a * 7);
+          ctx.stroke();
+        }
+        break;
+      }
+      case 'ray': {
+        ctx.beginPath();
+        ctx.moveTo(26, 0);
+        ctx.lineTo(0, -28);
+        ctx.lineTo(-22, 0);
+        ctx.lineTo(0, 28);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        // Whip tail
+        ctx.beginPath();
+        ctx.moveTo(-22, 0);
+        ctx.lineTo(-46, Math.sin(time * 4) * 6);
+        ctx.stroke();
+        break;
+      }
+      case 'shark':
+      case 'tuna':
+      case 'grouper':
+      case 'large_fish':
+      default: {
+        // Distinct large predator fish / shark body
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 32, 14, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        // Tail
+        ctx.beginPath();
+        ctx.moveTo(-28, 0);
+        ctx.lineTo(-42, -13);
+        ctx.lineTo(-38, 0);
+        ctx.lineTo(-42, 13);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        // Dorsal fin
+        ctx.beginPath();
+        ctx.moveTo(-4, -13);
+        ctx.lineTo(-12, -25);
+        ctx.lineTo(8, -13);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        break;
+      }
+    }
+
+    // Predator eye
+    ctx.fillStyle = '#fef08a';
+    ctx.beginPath();
+    ctx.arc(20, -4, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#0f172a';
+    ctx.beginPath();
+    ctx.arc(21, -4, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  // --------------------------------------------------------------------------
+  // 5. MAIN GAME STATE & ISOMETRIC OCEAN WORLD
+  // --------------------------------------------------------------------------
+  const canvas = document.getElementById('gameCanvas');
+  const ctx = canvas.getContext('2d');
+
+  let width = window.innerWidth;
+  let height = window.innerHeight;
+
+  function resizeCanvas() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    width = window.innerWidth;
+    height = window.innerHeight;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  // Active game entities
+  const state = {
+    creature: CREATURES.find(c => c.id === saveData.selectedId) || CREATURES[0],
+    player: {
+      x: width * 0.5,
+      y: height * 0.5,
+      vx: 0,
+      vy: 0,
+      facingLeft: false,
+      alpha: 1,
+      isResetting: false
+    },
+    foods: [],
+    predators: [],
+    bubbles: [],
+    seaweeds: [],
+    corals: [],
+    lightRays: [],
+    eatParticles: [],
+    keys: {},
+    pointerTarget: null,
+    joystickActive: false,
+    joystickVec: { x: 0, y: 0 },
+    tilt: {
+      enabled: false,
+      calibrated: false,
+      baseBeta: 0,
+      baseGamma: 0,
+      vec: { x: 0, y: 0 },
+      hasReceivedReading: false,
+      sensorCheckTimer: null
+    },
+    time: 0
+  };
+
+  // Initialize calming underwater scenery (bubbles, swaying seaweed, glowing coral, light rays)
+  function initOceanScenery() {
+    state.bubbles = [];
+    for (let i = 0; i < 36; i++) {
+      state.bubbles.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        r: 2 + Math.random() * 5,
+        speed: 14 + Math.random() * 22,
+        wobble: Math.random() * Math.PI * 2
+      });
+    }
+
+    state.seaweeds = [];
+    const weedCount = Math.max(8, Math.floor(width / 120));
+    for (let i = 0; i < weedCount; i++) {
+      state.seaweeds.push({
+        x: (i + 0.5) * (width / weedCount) + (Math.random() - 0.5) * 40,
+        y: height - 15 - Math.random() * 35,
+        height: 65 + Math.random() * 75,
+        segments: 5,
+        color: i % 2 === 0 ? '#10b981' : '#059669',
+        phase: Math.random() * Math.PI * 2
+      });
+    }
+
+    state.corals = [];
+    const coralColors = ['#fb7185', '#f472b6', '#fbbf24', '#c084fc', '#38bdf8'];
+    const coralCount = Math.max(6, Math.floor(width / 160));
+    for (let i = 0; i < coralCount; i++) {
+      state.corals.push({
+        x: (i + 0.3) * (width / coralCount) + Math.random() * 50,
+        y: height - 18 - Math.random() * 26,
+        size: 16 + Math.random() * 14,
+        color: coralColors[i % coralColors.length],
+        type: i % 3
+      });
+    }
+
+    state.lightRays = [];
+    for (let i = 0; i < 6; i++) {
+      state.lightRays.push({
+        x: (i + 0.5) * (width / 6),
+        width: 65 + Math.random() * 95,
+        speed: 0.25 + Math.random() * 0.25,
+        phase: Math.random() * Math.PI * 2
+      });
+    }
+  }
+  initOceanScenery();
+
+  function spawnFoodItem() {
+    const foodPool = state.creature.foods;
+    const template = foodPool[Math.floor(Math.random() * foodPool.length)];
+    const margin = 65;
+    return {
+      ...template,
+      x: margin + Math.random() * Math.max(100, width - margin * 2),
+      y: 95 + Math.random() * Math.max(100, height - 175),
+      vx: (Math.random() - 0.5) * 18,
+      vy: (Math.random() - 0.5) * 14,
+      phase: Math.random() * Math.PI * 2
+    };
+  }
+
+  function spawnPredatorItem(index) {
+    const predPool = state.creature.predators;
+    const template = predPool[index % predPool.length];
+    const fromLeft = Math.random() < 0.5;
+    return {
+      ...template,
+      x: fromLeft ? -70 : width + 70,
+      y: 120 + Math.random() * Math.max(120, height - 220),
+      vx: (fromLeft ? 1 : -1) * template.speed,
+      vy: (Math.random() - 0.5) * 12,
+      phase: Math.random() * Math.PI * 2
+    };
+  }
+
+  function populateEntitiesForCreature() {
+    state.foods = [];
+    for (let i = 0; i < 11; i++) {
+      state.foods.push(spawnFoodItem());
+    }
+
+    state.predators = [];
+    // Gentle number of predators (2 to 3) so ocean stays peaceful and navigable
+    const predCount = Math.min(3, Math.max(2, state.creature.predators.length));
+    for (let i = 0; i < predCount; i++) {
+      const p = spawnPredatorItem(i);
+      // Stagger initial positions away from center player spawn
+      p.x = i % 2 === 0 ? width * 0.14 : width * 0.86;
+      p.y = i % 2 === 0 ? height * 0.25 : height * 0.72;
+      state.predators.push(p);
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // 6. UI UPDATES, TOAST BANNERS & CHARACTER SELECT ROSTER
+  // --------------------------------------------------------------------------
+  const hudPortrait = document.getElementById('hudPortrait');
+  const hudPortraitCtx = hudPortrait.getContext('2d');
+  const hudCreatureName = document.getElementById('hudCreatureName');
+  const hudStageLabel = document.getElementById('hudStageLabel');
+  const hudGrowthFill = document.getElementById('hudGrowthFill');
+  const hudDietHint = document.getElementById('hudDietHint');
+  const hudUnlockCount = document.getElementById('hudUnlockCount');
+  const legendEats = document.getElementById('legendEats');
+  const legendAvoids = document.getElementById('legendAvoids');
+  const toastContainer = document.getElementById('toastContainer');
+  const fadeOverlay = document.getElementById('fadeOverlay');
+
+  function showToast(title, subtitle) {
+    const el = document.createElement('div');
+    el.className = 'toast-banner absolute left-1/2 top-0 w-full rounded-2xl border border-amber-200/35 bg-slate-900/85 px-4 py-3 text-center shadow-xl backdrop-blur-md';
+    el.innerHTML = `
+      <div class="font-storybook text-sm sm:text-base font-bold text-amber-200">${title}</div>
+      <div class="mt-0.5 text-xs text-sky-100">${subtitle}</div>
+    `;
+    toastContainer.innerHTML = '';
+    toastContainer.appendChild(el);
+    setTimeout(() => {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    }, 4300);
+  }
+
+  function updateHUD() {
+    const c = state.creature;
+    const prog = saveData.progress[c.id] || { meals: 0, stage: 1 };
+    const pct = Math.min(100, Math.round((prog.meals / c.mealsToGrow) * 100));
+
+    hudCreatureName.textContent = c.name;
+    hudStageLabel.textContent = `Stage ${prog.stage}`;
+    hudGrowthFill.style.width = `${pct}%`;
+    hudDietHint.textContent = `Eats: ${c.eatsText}`;
+    hudUnlockCount.textContent = `${saveData.unlocked.length}/${CREATURES.length}`;
+
+    legendEats.textContent = `Eats: ${c.eatsText}`;
+    legendAvoids.textContent = `Avoid: ${c.avoidsText}`;
+
+    // Render mini portrait in HUD
+    hudPortraitCtx.clearRect(0, 0, 42, 42);
+    hudPortraitCtx.save();
+    hudPortraitCtx.translate(21, 21);
+    drawCreatureArt(hudPortraitCtx, c.id, c.palette, 0.5, 0.52, false, 1);
+    hudPortraitCtx.restore();
+  }
+
+  function selectCreature(creatureId) {
+    const found = CREATURES.find(c => c.id === creatureId);
+    if (!found || !saveData.unlocked.includes(found.id)) return;
+
+    state.creature = found;
+    saveData.selectedId = found.id;
+    saveStateToDisk();
+
+    state.player.x = width * 0.5;
+    state.player.y = height * 0.5;
+    state.player.vx = 0;
+    state.player.vy = 0;
+    state.player.alpha = 1;
+    state.player.isResetting = false;
+    state.pointerTarget = null;
+
+    populateEntitiesForCreature();
+    updateHUD();
+  }
+
+  function renderRosterModal() {
+    const grid = document.getElementById('rosterGrid');
+    grid.innerHTML = '';
+
+    CREATURES.forEach((c, idx) => {
+      const isUnlocked = saveData.unlocked.includes(c.id);
+      const isSelected = state.creature.id === c.id;
+      const prog = saveData.progress[c.id] || { meals: 0, stage: 1 };
+
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.disabled = !isUnlocked;
+
+      if (isUnlocked) {
+        card.className = `group flex items-center gap-3.5 rounded-2xl border p-3.5 text-left transition active:scale-[0.98] ${
+          isSelected
+            ? 'border-amber-300/70 bg-sky-800/75 ring-2 ring-amber-300/30'
+            : 'border-sky-200/20 bg-sky-950/55 hover:border-sky-200/45 hover:bg-sky-900/65'
+        }`;
+      } else {
+        card.className = 'flex items-center gap-3.5 rounded-2xl border border-sky-200/10 bg-slate-950/45 p-3.5 text-left opacity-75 cursor-not-allowed';
+      }
+
+      const portraitCanvas = document.createElement('canvas');
+      portraitCanvas.width = 76;
+      portraitCanvas.height = 64;
+      portraitCanvas.className = 'h-16 w-20 shrink-0 rounded-xl bg-sky-950/80 ring-1 ring-sky-200/15';
+
+      const pCtx = portraitCanvas.getContext('2d');
+      pCtx.save();
+      pCtx.translate(38, 32);
+      if (isUnlocked) {
+        drawCreatureArt(pCtx, c.id, c.palette, 0.4, 0.85, false, 1);
+      } else {
+        // Dark silhouette for locked creatures
+        const silhouettePalette = {
+          body: '#0f172a',
+          belly: '#1e293b',
+          accent: '#1e293b',
+          gill: '#0f172a',
+          eye: '#334155'
+        };
+        drawCreatureArt(pCtx, c.id, silhouettePalette, 0.4, 0.85, false, 0.85);
+      }
+      pCtx.restore();
+
+      const info = document.createElement('div');
+      info.className = 'min-w-0 flex-1';
+
+      if (isUnlocked) {
+        info.innerHTML = `
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-storybook truncate text-base font-bold text-white">${c.name}</span>
+            <span class="shrink-0 rounded-full bg-teal-400/20 px-2 py-0.5 text-[10px] font-bold text-teal-200">Stage ${prog.stage}</span>
+          </div>
+          <p class="mt-1 text-xs text-emerald-200/95"><span class="font-bold">Eats:</span> ${c.eatsText}</p>
+          <p class="mt-0.5 text-[11px] text-amber-200/80"><span class="font-bold">Avoid:</span> ${c.avoidsText}</p>
+        `;
+        card.addEventListener('click', () => {
+          audio.init();
+          selectCreature(c.id);
+          closeRosterModal();
+        });
+      } else {
+        const prevCreature = CREATURES[idx - 1];
+        info.innerHTML = `
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-storybook truncate text-base font-bold text-sky-300/70">${c.name}</span>
+            <span class="shrink-0 rounded-full bg-slate-800 px-2 py-0.5 text-[10px] font-bold text-slate-400">Locked</span>
+          </div>
+          <p class="mt-1 text-xs text-sky-300/60">Grow ${prevCreature ? prevCreature.name : 'a creature'} to unlock</p>
+        `;
+      }
+
+      card.appendChild(portraitCanvas);
+      card.appendChild(info);
+      grid.appendChild(card);
+    });
+  }
+
+  const rosterModal = document.getElementById('rosterModal');
+  function openRosterModal() {
+    renderRosterModal();
+    rosterModal.classList.remove('hidden');
+  }
+  function closeRosterModal() {
+    rosterModal.classList.add('hidden');
+  }
+
+  document.getElementById('btnOpenRoster').addEventListener('click', () => {
+    audio.init();
+    openRosterModal();
+  });
+  document.getElementById('btnCloseRoster').addEventListener('click', () => {
+    audio.init();
+    closeRosterModal();
+  });
+
+  // Mute button toggle
+  const btnMute = document.getElementById('btnMute');
+  const iconSoundOn = document.getElementById('iconSoundOn');
+  const iconSoundOff = document.getElementById('iconSoundOff');
+
+  btnMute.addEventListener('click', () => {
+    audio.init();
+    const nextMute = !audio.isMuted;
+    audio.setMuted(nextMute);
+    iconSoundOn.classList.toggle('hidden', nextMute);
+    iconSoundOff.classList.toggle('hidden', !nextMute);
+  });
+
+  // Optional Virtual Joystick toggle
+  const btnToggleJoystick = document.getElementById('btnToggleJoystick');
+  const virtualJoystick = document.getElementById('virtualJoystick');
+  const joystickKnob = document.getElementById('joystickKnob');
+  let joystickEnabled = false;
+
+  btnToggleJoystick.addEventListener('click', () => {
+    audio.init();
+    joystickEnabled = !joystickEnabled;
+    virtualJoystick.classList.toggle('hidden', !joystickEnabled);
+    btnToggleJoystick.classList.toggle('ring-2', joystickEnabled);
+    btnToggleJoystick.classList.toggle('ring-teal-300', joystickEnabled);
+  });
+
+  // --------------------------------------------------------------------------
+  // 6B. PHONE TILT-TO-SWIM MOTION CONTROLS (CALIBRATION + IOS/ANDROID SUPPORT)
+  // --------------------------------------------------------------------------
+  const btnToggleTilt = document.getElementById('btnToggleTilt');
+  const tiltLabel = document.getElementById('tiltLabel');
+
+  function setTiltUIState(isOn) {
+    state.tilt.enabled = isOn;
+    tiltLabel.textContent = isOn ? 'Tilt: ON' : 'Tilt: OFF';
+    btnToggleTilt.setAttribute('aria-pressed', String(isOn));
+    btnToggleTilt.classList.toggle('ring-2', isOn);
+    btnToggleTilt.classList.toggle('ring-teal-300', isOn);
+    btnToggleTilt.classList.toggle('bg-teal-900/60', isOn);
+  }
+
+  function disableTiltControl(reasonToast) {
+    if (state.tilt.sensorCheckTimer) {
+      clearTimeout(state.tilt.sensorCheckTimer);
+      state.tilt.sensorCheckTimer = null;
+    }
+    window.removeEventListener('deviceorientation', handleDeviceOrientation);
+    state.tilt.calibrated = false;
+    state.tilt.hasReceivedReading = false;
+    state.tilt.vec = { x: 0, y: 0 };
+    setTiltUIState(false);
+    if (reasonToast) {
+      showToast('Tilt Unavailable', reasonToast);
+    }
+  }
+
+  function getScreenAngle() {
+    if (window.screen && window.screen.orientation && typeof window.screen.orientation.angle === 'number') {
+      return window.screen.orientation.angle;
+    }
+    if (typeof window.orientation === 'number') {
+      return window.orientation;
+    }
+    return 0;
+  }
+
+  function handleDeviceOrientation(event) {
+    if (!state.tilt.enabled) return;
+    if (event.beta === null || event.gamma === null) return;
+
+    state.tilt.hasReceivedReading = true;
+    if (state.tilt.sensorCheckTimer) {
+      clearTimeout(state.tilt.sensorCheckTimer);
+      state.tilt.sensorCheckTimer = null;
+    }
+
+    // Calibrate resting holding angle on first reading after toggling ON
+    if (!state.tilt.calibrated) {
+      state.tilt.baseBeta = event.beta;
+      state.tilt.baseGamma = event.gamma;
+      state.tilt.calibrated = true;
+    }
+
+    // Relative tilt from the player's comfortable resting pose
+    let deltaGamma = event.gamma - state.tilt.baseGamma; // Left/Right in portrait
+    let deltaBeta = event.beta - state.tilt.baseBeta;   // Forward/Back in portrait
+
+    // Normalize axes according to screen orientation (portrait vs landscape)
+    const angle = ((getScreenAngle() % 360) + 360) % 360;
+    let rawX = deltaGamma;
+    let rawY = deltaBeta;
+
+    if (angle === 90) {
+      rawX = deltaBeta;
+      rawY = -deltaGamma;
+    } else if (angle === 270) {
+      rawX = -deltaBeta;
+      rawY = deltaGamma;
+    } else if (angle === 180) {
+      rawX = -deltaGamma;
+      rawY = -deltaBeta;
+    }
+
+    // Gentle deadzone (4 deg) to prevent jitter, full speed at 24 deg tilt
+    const deadzone = 4.0;
+    const maxTilt = 24.0;
+
+    function mapAxis(deg) {
+      const abs = Math.abs(deg);
+      if (abs <= deadzone) return 0;
+      const norm = Math.min(1, (abs - deadzone) / (maxTilt - deadzone));
+      // Smooth ease-out curve for calm swimming feel
+      const eased = norm * (1.35 - 0.35 * norm);
+      return Math.sign(deg) * Math.min(1, eased);
+    }
+
+    const targetX = mapAxis(rawX);
+    const targetY = mapAxis(rawY);
+
+    // Smooth low-pass filter on tilt vector
+    state.tilt.vec.x += (targetX - state.tilt.vec.x) * 0.25;
+    state.tilt.vec.y += (targetY - state.tilt.vec.y) * 0.25;
+  }
+
+  async function enableTiltControl() {
+    if (typeof window.DeviceOrientationEvent === 'undefined') {
+      disableTiltControl('Tilt sensors not detected on this device');
+      return;
+    }
+
+    // iOS 13+ requires explicit user-gesture permission request
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+      try {
+        const response = await DeviceOrientationEvent.requestPermission();
+        if (response !== 'granted') {
+          disableTiltControl('Motion permission was declined');
+          return;
+        }
+      } catch (err) {
+        disableTiltControl('Tilt sensors not available on this device');
+        return;
+      }
+    }
+
+    state.tilt.calibrated = false;
+    state.tilt.hasReceivedReading = false;
+    state.tilt.vec = { x: 0, y: 0 };
+    setTiltUIState(true);
+
+    window.addEventListener('deviceorientation', handleDeviceOrientation);
+
+    // Verify sensor actually delivers data (desktops often expose DeviceOrientationEvent with no hardware)
+    state.tilt.sensorCheckTimer = setTimeout(() => {
+      if (state.tilt.enabled && !state.tilt.hasReceivedReading) {
+        disableTiltControl('Tilt sensors not detected on this device');
+      }
+    }, 900);
+
+    showToast('Tilt Steering ON', 'Calibrated to how you are holding your phone');
+  }
+
+  btnToggleTilt.addEventListener('click', () => {
+    audio.init();
+    if (state.tilt.enabled) {
+      disableTiltControl(null);
+      showToast('Tilt Steering OFF', 'Switched back to touch & keyboard');
+    } else {
+      enableTiltControl();
+    }
+  });
+
+  // Recalibrate gently if device rotates while tilt is active
+  window.addEventListener('orientationchange', () => {
+    if (state.tilt.enabled) {
+      state.tilt.calibrated = false;
+    }
+  });
+
+  window.addEventListener('pointerup', () => {
+    if (state.joystickActive) {
+      state.joystickActive = false;
+      state.joystickVec = { x: 0, y: 0 };
+      joystickKnob.style.transform = 'translate(-50%, -50%)';
+    }
+    isDraggingCanvas = false;
+  });
+
+  function updateJoystickFromEvent(e) {
+    const rect = virtualJoystick.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = e.clientX - cx;
+    const dy = e.clientY - cy;
+    const maxR = rect.width * 0.36;
+    const dist = Math.hypot(dx, dy);
+    const clamped = Math.min(dist, maxR);
+    const angle = Math.atan2(dy, dx);
+    const kx = Math.cos(angle) * clamped;
+    const ky = Math.sin(angle) * clamped;
+
+    joystickKnob.style.transform = `translate(calc(-50% + ${kx}px), calc(-50% + ${ky}px))`;
+    state.joystickVec = {
+      x: dist > 4 ? kx / maxR : 0,
+      y: dist > 4 ? ky / maxR : 0
+    };
+  }
+
+  // Drag anywhere on ocean canvas to swim smoothly toward finger/cursor
+  let isDraggingCanvas = false;
+  canvas.addEventListener('pointerdown', (e) => {
+    audio.init();
+    isDraggingCanvas = true;
+    state.pointerTarget = { x: e.clientX, y: e.clientY };
+  });
+
+  // Follow the finger while dragging so the creature swims toward it continuously
+  window.addEventListener('pointermove', (e) => {
+    if (state.joystickActive) {
+      updateJoystickFromEvent(e);
+      return;
+    }
+    if (isDraggingCanvas) {
+      state.pointerTarget = { x: e.clientX, y: e.clientY };
+    }
+  });
+
+  // Keyboard steering (Arrow keys / WASD) — feeds the state.keys the update loop reads
+  window.addEventListener('keydown', (e) => {
+    audio.init();
+    state.keys[e.key.toLowerCase()] = true;
+  });
+  window.addEventListener('keyup', (e) => {
+    state.keys[e.key.toLowerCase()] = false;
+  });
+
+  // Virtual joystick: press to grab it, drag to steer
+  virtualJoystick.addEventListener('pointerdown', (e) => {
+    audio.init();
+    state.joystickActive = true;
+    updateJoystickFromEvent(e);
+  });
+
+  // --------------------------------------------------------------------------
+  // 8. GROWTH, UNLOCKING & GENTLE CATCH RESET LOGIC
+  // --------------------------------------------------------------------------
+  function handleEatFood(foodIndex) {
+    const food = state.foods[foodIndex];
+    audio.playMunch();
+
+    // Gentle celebratory bubbles at food location
+    for (let i = 0; i < 6; i++) {
+      state.eatParticles.push({
+        x: food.x,
+        y: food.y,
+        vx: (Math.random() - 0.5) * 45,
+        vy: -15 - Math.random() * 35,
+        r: 2.5 + Math.random() * 3,
+        life: 1
+      });
+    }
+
+    // Replace eaten food cleanly
+    state.foods[foodIndex] = spawnFoodItem();
+
+    // Advance creature growth progress
+    const c = state.creature;
+    const prog = saveData.progress[c.id];
+    prog.meals += 1;
+
+    if (prog.meals >= c.mealsToGrow) {
+      prog.meals = 0;
+      prog.stage += 1;
+      audio.playGrowChime();
+
+      // Check if next locked creature in order can be unlocked
+      const nextLocked = CREATURES.find(item => !saveData.unlocked.includes(item.id));
+      if (nextLocked) {
+        saveData.unlocked.push(nextLocked.id);
+        showToast(
+          `${c.name} grew to Stage ${prog.stage}!`,
+          `New creature unlocked: ${nextLocked.name}`
+        );
+      } else {
+        showToast(
+          `${c.name} grew to Stage ${prog.stage}!`,
+          `All 20 deep-sea creatures are unlocked!`
+        );
+      }
+    }
+
+    saveStateToDisk();
+    updateHUD();
+  }
+
+  function triggerGentleCatch() {
+    if (state.player.isResetting) return;
+    state.player.isResetting = true;
+    state.pointerTarget = null;
+
+    audio.playGentleCatch();
+    fadeOverlay.style.opacity = '0.92';
+
+    // Fade creature out softly and restart right away in the same ocean
+    // Growth progress and unlocked creatures remain completely intact
+    setTimeout(() => {
+      state.player.x = width * 0.5;
+      state.player.y = height * 0.5;
+      state.player.vx = 0;
+      state.player.vy = 0;
+
+      // Move predators gently away from center spawn so player starts safely
+      state.predators.forEach((p, idx) => {
+        p.x = idx % 2 === 0 ? width * 0.1 : width * 0.9;
+        p.y = idx % 2 === 0 ? height * 0.22 : height * 0.78;
+      });
+
+      fadeOverlay.style.opacity = '0';
+      setTimeout(() => {
+        state.player.isResetting = false;
+      }, 450);
+    }, 850);
+  }
+
+  // --------------------------------------------------------------------------
+  // 9. ISOMETRIC OCEAN ENVIRONMENT & MAIN ANIMATION LOOP
+  // --------------------------------------------------------------------------
+  function drawIsometricOceanBackground(time) {
+    // Deep storybook ocean vertical gradient
+    const oceanGrad = ctx.createLinearGradient(0, 0, 0, height);
+    oceanGrad.addColorStop(0, '#0c4a6e');
+    oceanGrad.addColorStop(0.52, '#072f4e');
+    oceanGrad.addColorStop(1, '#041b30');
+    ctx.fillStyle = oceanGrad;
+    ctx.fillRect(0, 0, width, height);
+
+    // Slow diagonal light rays filtering from the water surface
+    state.lightRays.forEach((ray) => {
+      const swayX = ray.x + Math.sin(time * ray.speed + ray.phase) * 35;
+      const rayGrad = ctx.createLinearGradient(swayX, 0, swayX + 60, height * 0.78);
+      rayGrad.addColorStop(0, 'rgba(186, 230, 253, 0.13)');
+      rayGrad.addColorStop(1, 'rgba(186, 230, 253, 0)');
+      ctx.fillStyle = rayGrad;
+      ctx.beginPath();
+      ctx.moveTo(swayX - ray.width * 0.4, 0);
+      ctx.lineTo(swayX + ray.width * 0.4, 0);
+      ctx.lineTo(swayX + ray.width * 1.15, height * 0.78);
+      ctx.lineTo(swayX - ray.width * 0.1, height * 0.78);
+      ctx.closePath();
+      ctx.fill();
+    });
+
+    // Subtle 2D isometric seabed perspective grid lines
+    ctx.save();
+    ctx.strokeStyle = 'rgba(125, 211, 252, 0.055)';
+    ctx.lineWidth = 1;
+    const tileW = 96;
+    const tileH = 48;
+    const startY = height * 0.56;
+    for (let row = 0; row < 12; row++) {
+      const y = startY + row * (tileH * 0.85);
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
+      ctx.stroke();
+    }
+    for (let col = -6; col < width / tileW + 8; col++) {
+      const xTop = col * tileW;
+      ctx.beginPath();
+      ctx.moveTo(xTop, startY);
+      ctx.lineTo(xTop - 160, height);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // Soft sandy isometric seabed contour at bottom
+    const sandGrad = ctx.createLinearGradient(0, height - 95, 0, height);
+    sandGrad.addColorStop(0, 'rgba(217, 185, 132, 0.18)');
+    sandGrad.addColorStop(0.4, 'rgba(194, 158, 104, 0.34)');
+    sandGrad.addColorStop(1, 'rgba(146, 114, 72, 0.55)');
+    ctx.fillStyle = sandGrad;
+    ctx.beginPath();
+    ctx.moveTo(0, height - 58);
+    ctx.quadraticCurveTo(width * 0.3, height - 82, width * 0.62, height - 56);
+    ctx.quadraticCurveTo(width * 0.85, height - 42, width, height - 64);
+    ctx.lineTo(width, height);
+    ctx.lineTo(0, height);
+    ctx.closePath();
+    ctx.fill();
+
+    // Swaying Seaweed
+    state.seaweeds.forEach((weed) => {
+      ctx.save();
+      ctx.strokeStyle = weed.color;
+      ctx.lineWidth = 7;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(weed.x, weed.y);
+      const segH = weed.height / weed.segments;
+      let curX = weed.x;
+      let curY = weed.y;
+      for (let s = 1; s <= weed.segments; s++) {
+        const sway = Math.sin(time * 1.6 + weed.phase + s * 0.7) * (s * 4.2);
+        const nextX = weed.x + sway;
+        const nextY = weed.y - s * segH;
+        ctx.quadraticCurveTo(curX, curY - segH * 0.5, nextX, nextY);
+        curX = nextX;
+        curY = nextY;
+      }
+      ctx.stroke();
+      ctx.restore();
+    });
+
+    // Soft Glowing Coral Clusters
+    state.corals.forEach((coral) => {
+      ctx.save();
+      ctx.translate(coral.x, coral.y);
+      ctx.fillStyle = coral.color;
+      ctx.globalAlpha = 0.75;
+      if (coral.type === 0) {
+        // Brain coral dome
+        ctx.beginPath();
+        ctx.arc(0, 0, coral.size, Math.PI, 0);
+        ctx.fill();
+      } else if (coral.type === 1) {
+        // Branching staghorn coral
+        ctx.strokeStyle = coral.color;
+        ctx.lineWidth = 5;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(0, 4);
+        ctx.lineTo(0, -coral.size);
+        ctx.moveTo(0, -coral.size * 0.45);
+        ctx.lineTo(-coral.size * 0.55, -coral.size * 0.9);
+        ctx.moveTo(0, -coral.size * 0.6);
+        ctx.lineTo(coral.size * 0.55, -coral.size * 0.95);
+        ctx.stroke();
+      } else {
+        // Tube sponge cluster
+        [-6, 0, 6].forEach((ox, idx) => {
+          const h = coral.size * (0.8 + (idx % 2) * 0.35);
+          ctx.beginPath();
+          ctx.roundRect(ox - 3, -h, 6, h, 3);
+          ctx.fill();
+        });
+      }
+      ctx.restore();
+    });
+
+    // Drifting Bubbles
+    state.bubbles.forEach((b) => {
+      const bx = b.x + Math.sin(time * 1.4 + b.wobble) * 6;
+      ctx.strokeStyle = 'rgba(224, 242, 254, 0.35)';
+      ctx.fillStyle = 'rgba(224, 242, 254, 0.1)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(bx, b.y, b.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    });
+  }
+
+  let lastFrameTime = performance.now();
+
+  function update(dt) {
+    state.time += dt;
+
+    // Update bubbles
+    state.bubbles.forEach((b) => {
+      b.y -= b.speed * dt;
+      if (b.y < -15) {
+        b.y = height + 15;
+        b.x = Math.random() * width;
+      }
+    });
+
+    // Update eat particles
+    for (let i = state.eatParticles.length - 1; i >= 0; i--) {
+      const p = state.eatParticles[i];
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.life -= dt * 1.3;
+      if (p.life <= 0) state.eatParticles.splice(i, 1);
+    }
+
+    // Player gentle isometric swimming movement
+    const p = state.player;
+    if (p.isResetting) {
+      p.alpha = Math.max(0, p.alpha - dt * 1.8);
+    } else {
+      p.alpha = Math.min(1, p.alpha + dt * 2.2);
+
+      let moveX = 0;
+      let moveY = 0;
+
+      // Keyboard WASD / Arrow keys
+      if (state.keys['arrowleft'] || state.keys['a']) moveX -= 1;
+      if (state.keys['arrowright'] || state.keys['d']) moveX += 1;
+      if (state.keys['arrowup'] || state.keys['w']) moveY -= 1;
+      if (state.keys['arrowdown'] || state.keys['s']) moveY += 1;
+
+      // Optional virtual joystick
+      if (state.joystickActive) {
+        moveX += state.joystickVec.x;
+        moveY += state.joystickVec.y;
+      }
+
+      // Smooth pointer / touch drag steering
+      if (moveX === 0 && moveY === 0 && state.pointerTarget) {
+        const dx = state.pointerTarget.x - p.x;
+        const dy = state.pointerTarget.y - p.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist > 10) {
+          moveX = dx / dist;
+          moveY = dy / dist;
+        } else {
+          state.pointerTarget = null;
+        }
+      }
+
+      // Phone tilt-to-swim steering (yields seamlessly while keyboard, joystick, or touch-drag is active)
+      if (moveX === 0 && moveY === 0 && !isDraggingCanvas && state.tilt.enabled && state.tilt.calibrated) {
+        moveX = state.tilt.vec.x;
+        moveY = state.tilt.vec.y;
+      }
+
+      const mag = Math.hypot(moveX, moveY);
+      if (mag > 1) {
+        moveX /= mag;
+        moveY /= mag;
+      }
+
+      const maxSpeed = 165;
+      const targetVx = moveX * maxSpeed;
+      const targetVy = moveY * maxSpeed * 0.82; // Slight isometric vertical ratio
+
+      p.vx += (targetVx - p.vx) * Math.min(1, dt * 6.5);
+      p.vy += (targetVy - p.vy) * Math.min(1, dt * 6.5);
+
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+
+      if (Math.abs(p.vx) > 6) {
+        p.facingLeft = p.vx < 0;
+      }
+
+      // Soft screen boundaries
+      const padX = 44;
+      const padTop = 86;
+      const padBottom = 64;
+      p.x = Math.max(padX, Math.min(width - padX, p.x));
+      p.y = Math.max(padTop, Math.min(height - padBottom, p.y));
+    }
+
+    // Current growth stage scale factor
+    const prog = saveData.progress[state.creature.id] || { meals: 0, stage: 1 };
+    const stageScale = Math.min(1.55, 1 + (prog.stage - 1) * 0.08 + (prog.meals / state.creature.mealsToGrow) * 0.06);
+    const eatRadius = 28 * stageScale;
+
+    // Update drifting food items & check gentle eating
+    for (let i = state.foods.length - 1; i >= 0; i--) {
+      const f = state.foods[i];
+      f.x += f.vx * dt;
+      f.y += f.vy * dt;
+
+      // Gentle wrap/bounce inside play area
+      if (f.x < 40) { f.x = 40; f.vx = Math.abs(f.vx); }
+      if (f.x > width - 40) { f.x = width - 40; f.vx = -Math.abs(f.vx); }
+      if (f.y < 88) { f.y = 88; f.vy = Math.abs(f.vy); }
+      if (f.y > height - 72) { f.y = height - 72; f.vy = -Math.abs(f.vy); }
+
+      if (!p.isResetting) {
+        const d = Math.hypot(f.x - p.x, f.y - p.y);
+        if (d < eatRadius) {
+          handleEatFood(i);
+        }
+      }
+    }
+
+    // Update slow, fair predators & calculate music tension
+    let closestPredDist = Infinity;
+    state.predators.forEach((pred) => {
+      pred.x += pred.vx * dt;
+      pred.y += pred.vy * dt + Math.sin(state.time * 1.5 + pred.phase) * 8 * dt;
+
+      // Keep predators gently inside vertical bounds
+      if (pred.y < 95) { pred.y = 95; pred.vy = Math.abs(pred.vy); }
+      if (pred.y > height - 80) { pred.y = height - 80; pred.vy = -Math.abs(pred.vy); }
+
+      // Wrap smoothly across horizontal edges
+      if (pred.vx > 0 && pred.x > width + 85) {
+        pred.x = -85;
+        pred.y = 110 + Math.random() * Math.max(120, height - 210);
+      } else if (pred.vx < 0 && pred.x < -85) {
+        pred.x = width + 85;
+        pred.y = 110 + Math.random() * Math.max(120, height - 210);
+      }
+
+      const dist = Math.hypot(pred.x - p.x, pred.y - p.y);
+      if (dist < closestPredDist) {
+        closestPredDist = dist;
+      }
+
+      // Fair, forgiving collision radius
+      if (!p.isResetting && dist < 26 + 10 * stageScale) {
+        triggerGentleCatch();
+      }
+    });
+
+    // Shift music smoothly to slow/tense when predator approaches within 250px
+    const tensionLevel = Math.max(0, Math.min(1, (260 - closestPredDist) / 150));
+    audio.setTension(tensionLevel);
+  }
+
+  function render() {
+    drawIsometricOceanBackground(state.time);
+
+    // Draw drifting food items
+    state.foods.forEach((f) => {
+      drawFoodArt(ctx, f, state.time);
+    });
+
+    // Draw player creature
+    const prog = saveData.progress[state.creature.id] || { meals: 0, stage: 1 };
+    const stageScale = Math.min(1.55, 1 + (prog.stage - 1) * 0.08 + (prog.meals / state.creature.mealsToGrow) * 0.06);
+
+    ctx.save();
+    ctx.translate(state.player.x, state.player.y);
+    drawCreatureArt(
+      ctx,
+      state.creature.id,
+      state.creature.palette,
+      state.time,
+      stageScale,
+      state.player.facingLeft,
+      state.player.alpha
+    );
+    ctx.restore();
+
+    // Draw predators with soft warning ripples
+    state.predators.forEach((pred) => {
+      const dist = Math.hypot(pred.x - state.player.x, pred.y - state.player.y);
+      drawPredatorArt(ctx, pred, state.time, dist);
+    });
+
+    // Draw celebratory bubble bursts
+    state.eatParticles.forEach((pt) => {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, pt.life);
+      ctx.fillStyle = '#bae6fd';
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, pt.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+  }
+
+  function gameLoop(now) {
+    const dt = Math.min(0.05, (now - lastFrameTime) / 1000);
+    lastFrameTime = now;
+
+    update(dt);
+    render();
+    requestAnimationFrame(gameLoop);
+  }
+
+  // Boot game on window load
+  window.onload = function () {
+    selectCreature(saveData.selectedId);
+    openRosterModal();
+    requestAnimationFrame(gameLoop);
+  };
+})();
+</script>
+</body>
+</html>
